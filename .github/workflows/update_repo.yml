@@ -1,10 +1,9 @@
-Name: Update Repository
+name: Update Repository
 
 on:
   release:
     types: [published]
 
-# ١. پێویستە مۆڵەت بدەیت بە وەرکفلۆکە بۆ ئەوەی بتوانێت گۆڕانکارییەکان پۆست بکات (Commit & Push)
 permissions:
   contents: write
 
@@ -15,7 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          # ٢. دڵنیابە کە بە Token ی خۆیەوە دێتە ناوەوە بۆ ئەوەی مۆڵەتی هەبێت
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update app-repo.json
@@ -30,5 +28,4 @@ jobs:
           message: "chore: update repo"
           add: 'app-repo.json'
         env:
-          # ٣. لێرەشدا دڵنیابە کە ئەم تۆکنە دەبینێت
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
