@@ -46,7 +46,7 @@ struct AboutView: View {
 			// بەشی سۆشیاڵ میدیاکان
 			NBSection("Social Media") {
 				_socialRow(name: "Telegram", url: "https://t.me/ashtemobile", icon: "paperplane.fill", color: .blue)
-				_socialRow(name: "Instagram", url: "https://www.instagram.com/ashte.mobile?igsh=c3lqdHNsenozMmp2", icon: "camera.fill", color: .purple)
+				_socialRow(name: "Instagram", url: "https://www.instagram.com/ashtemobile", icon: "camera.fill", color: .purple)
 				_socialRow(name: "TikTok", url: "https://www.tiktok.com/@ashtemobile", icon: "play.tv.fill", color: .primary)
 				_socialRow(name: "Snapchat", url: "https://www.snapchat.com//add/ashtemzere", icon: "camera.filters", color: .yellow)
 			}
