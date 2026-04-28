@@ -1,6 +1,6 @@
 //
 //  AppIconView.swift
-//  Feather
+//  IPAOMTK
 //
 //  Created by samara on 19.06.2025.
 //
@@ -35,16 +35,14 @@ extension AppIconView {
 struct AppIconView: View {
     @Binding var currentIcon: String?
     
-    // 💡 لێرەدا هەموو ئایکۆنە زیادەکان سڕدراونەتەوە و تەنها ناوی خۆت دانراوە
     var sections: [String: [AltIcon]] = [
         "Store Icon": [
-            AltIcon(displayName: "AshteMobile", author: "Official", key: nil)
+            AltIcon(displayName: "IPAOMTK", author: "Official", key: nil)
         ]
     ]
     
     var body: some View {
         NBList(.localized("App Icon")) {
-            // بەشی ئایکۆن
             ForEach(sections.keys.sorted(), id: \.self) { section in
                 if let icons = sections[section] {
                     NBSection(section) {
@@ -55,9 +53,8 @@ struct AppIconView: View {
                 }
             }
             
-            // 💡 بەشی سۆشیاڵ میدیا کە داوات کردبوو
             NBSection("Social Media") {
-                Button(action: { UIApplication.shared.open(URL(string: "https://t.me/ashtemobile")!) }) {
+                Button(action: { UIApplication.shared.open(URL(string: "https://t.me/IPAOMTK")!) }) {
                     HStack {
                         Image(systemName: "paperplane.fill").foregroundColor(.blue)
                         Text("Telegram Channel")
@@ -66,7 +63,7 @@ struct AppIconView: View {
                     }
                 }
                 
-                Button(action: { UIApplication.shared.open(URL(string: "https://www.tiktok.com/@ashtemobile")!) }) {
+                Button(action: { UIApplication.shared.open(URL(string: "https://www.tiktok.com/@IPAOMTK")!) }) {
                     HStack {
                         Image(systemName: "play.tv.fill").foregroundColor(.black)
                         Text("TikTok")
