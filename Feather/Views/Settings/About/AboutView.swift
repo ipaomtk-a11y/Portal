@@ -2,7 +2,7 @@
 //  AboutView.swift
 //  Feather
 //
-//  Modified for AshteMobile
+//  Modified for IPAOMTK
 //
 
 import SwiftUI
@@ -16,8 +16,7 @@ struct AboutView: View {
 		NBList("About") {
 			Section {
 				VStack {
-					// وێنەی لۆگۆکەت
-					AsyncImage(url: URL(string: "https://ashtemobile.tututweak.com/a.png")) { image in
+					AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
 						image.resizable().scaledToFit()
 					} placeholder: {
 						ProgressView()
@@ -25,8 +24,7 @@ struct AboutView: View {
 					.frame(width: 80, height: 80)
 					.clipShape(RoundedRectangle(cornerRadius: 16))
 					
-					// ناوی ئەپەکە
-					Text("AshteMobile")
+					Text("IPAOMTK")
 						.font(.largeTitle)
 						.bold()
 						.foregroundStyle(Color.accentColor)
@@ -43,17 +41,14 @@ struct AboutView: View {
 			.frame(maxWidth: .infinity)
 			.listRowBackground(EmptyView())
 			
-			// بەشی سۆشیاڵ میدیاکان
 			NBSection("Social Media") {
-				_socialRow(name: "Telegram", url: "https://t.me/ashtemobile", icon: "paperplane.fill", color: .blue)
-				_socialRow(name: "Instagram", url: "https://www.instagram.com/ashtemobile", icon: "camera.fill", color: .purple)
-				_socialRow(name: "TikTok", url: "https://www.tiktok.com/@ashtemobile", icon: "play.tv.fill", color: .primary)
-				_socialRow(name: "Snapchat", url: "https://www.snapchat.com//add/ashtemzere", icon: "camera.filters", color: .yellow)
+				_socialRow(name: "Telegram", url: "https://t.me/IPAOMTK", icon: "paperplane.fill", color: .blue)
+				_socialRow(name: "Instagram", url: "https://www.instagram.com/IPAOMTK", icon: "camera.fill", color: .purple)
+				_socialRow(name: "TikTok", url: "https://www.tiktok.com/@IPAOMTK", icon: "play.tv.fill", color: .primary)
 			}
 			
-			// ناوی خۆت لە خوارەوە
 			Section {
-				Text("BY AshteMobile❤️")
+				Text("BY IPAOMTK❤️")
 					.font(.callout)
 					.bold()
 					.foregroundStyle(.secondary)
