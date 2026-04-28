@@ -490,7 +490,7 @@ struct SocialMediaFooter: View {
                 .foregroundColor(.secondary)
             
             HStack(spacing: 25) {
-                SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ashtemmobile")
+                SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ashtemobile")
                 SocialButton(icon: "camera.fill", color: Color(UIColor.systemPurple), url: "https://www.instagram.com/ashtemobile")
                 SocialButton(icon: "play.tv.fill", color: .black, url: "https://www.tiktok.com/@ashtemobile")
                 SocialButton(icon: "camera.viewfinder", color: .yellow, url: "https://www.snapchat.com/add/ashtemmobile")
