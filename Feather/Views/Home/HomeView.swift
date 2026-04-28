@@ -1,6 +1,6 @@
 //
 //  HomeView.swift
-//  Feather
+//  IPAOMTK
 //
 
 import SwiftUI
@@ -24,12 +24,12 @@ struct HomeApp: Codable, Identifiable {
 
     var fullImageURL: URL? {
         guard let img = image else { return nil }
-        return URL(string: "https://ashtemobile.tututweak.com/\(img)")
+        return URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png/\(img)")
     }
     
     var fullBannerURL: URL? {
         if let ban = banner {
-            return URL(string: "https://ashtemobile.tututweak.com/\(ban)")
+            return URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png/\(ban)")
         }
         return fullImageURL
     }
@@ -138,7 +138,7 @@ struct HomeView: View {
     @ViewBuilder
     private func notificationBanner(for app: HomeApp) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            AsyncImage(url: URL(string: "https://ashtemobile.tututweak.com/a.png")) { image in
+            AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 Color.black
@@ -233,9 +233,8 @@ struct HomeAppDetailView: View {
                             }
                             Spacer()
                             
-                            // 👈 لێرەدا شەیرکردنی ڕاستەوخۆی فایلەکەمان گۆڕی بۆ شەیرکردنی تێکست و لینکی کەنال
                             Button(action: {
-                                let shareText = "Download \(app.name) from AshteMobile Store!\nhttps://t.me/ashtemmobile"
+                                let shareText = "Download \(app.name) from IPAOMTK Store!\nhttps://t.me/ipaomtk"
                                 let av = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
                                 UIApplication.shared.windows.first?.rootViewController?.present(av, animated: true, completion: nil)
                             }) {
@@ -490,10 +489,9 @@ struct SocialMediaFooter: View {
                 .foregroundColor(.secondary)
             
             HStack(spacing: 25) {
-                SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ashtemobile")
-                SocialButton(icon: "camera.fill", color: Color(UIColor.systemPurple), url: "https://www.instagram.com/ashtemobile")
-                SocialButton(icon: "play.tv.fill", color: .black, url: "https://www.tiktok.com/@ashtemobile")
-                SocialButton(icon: "camera.viewfinder", color: .yellow, url: "https://www.snapchat.com/add/ashtemmobile")
+                SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ipaomtk")
+                SocialButton(icon: "camera.fill", color: Color(UIColor.systemPurple), url: "https://www.instagram.com/ipaomtk")
+                SocialButton(icon: "play.tv.fill", color: .black, url: "https://www.tiktok.com/@ipaomtk")
             }
         }
         .padding(.vertical, 20)
