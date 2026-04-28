@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  Feather
 //
-//  Modified for AshteMobile
+//  Modified for IPAOMTK
 //
 
 import SwiftUI
@@ -37,10 +37,9 @@ struct SettingsView: View {
 	var body: some View {
 		NBNavigationView(.localized("Settings")) {
 			Form {
-				// بەشی لۆگۆ و تێلیگرام لە شوێنی Donations
 				Section {
 					VStack(spacing: 15) {
-						AsyncImage(url: URL(string: "https://ashtemobile.tututweak.com/a.png")) { image in
+						AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
 							image.resizable().scaledToFit()
 						} placeholder: {
 							ProgressView()
@@ -49,7 +48,7 @@ struct SettingsView: View {
 						.clipShape(RoundedRectangle(cornerRadius: 16))
 						
 						Button(action: {
-							if let url = URL(string: "https://t.me/ashtemobile") {
+							if let url = URL(string: "https://t.me/IPAOMTK") {
 								UIApplication.shared.open(url)
 							}
 						}) {
@@ -133,25 +132,22 @@ extension SettingsView {
 				}
 			}
 			
-			// دوگمەی تێلیگرام
 			Button(action: {
-				if let url = URL(string: "https://t.me/ashtemobile") {
+				if let url = URL(string: "https://t.me/IPAOMTK") {
 					UIApplication.shared.open(url)
 				}
 			}) {
 				Label("Telegram", systemImage: "paperplane")
 			}
 			
-			// دوگمەی ئینستاگرام
 			Button(action: {
-				if let url = URL(string: "https://www.instagram.com/ashtemobile") {
+				if let url = URL(string: "https://www.instagram.com/IPAOMTK") {
 					UIApplication.shared.open(url)
 				}
 			}) {
 				Label("Instagram", systemImage: "camera")
 			}
 		}
-		// تێبینی: نووسینەکەی خوارەوەی GitHub بەپێی داواکاریت لابراوە
 	}
 	
 	@ViewBuilder
