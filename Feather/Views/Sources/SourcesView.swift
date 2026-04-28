@@ -121,12 +121,17 @@ struct SourcesView: View {
 				UIApplication.open("https://github.com/khcrysalis/Feather")
 			}
 			
+						let telegram = UIAlertAction(title: "Telegram", style: .default) { _ in
+				UIApplication.open("https://t.me/ashtemobile")
+			}
+			
 			let cancel = UIAlertAction(title: .localized("Dismiss"), style: .cancel)
 			
 			UIAlertController.showAlert(
-				title: .localized("Enjoying %@?", arguments: Bundle.main.name),
-				message: .localized("Go to our GitHub and give us a star!"),
-				actions: [github, cancel]
+				title: "Enjoying AshteMobile?",
+				message: "Join our Telegram channel for more updates!",
+				actions: [telegram, cancel]
+
 			)
 		}
 		#endif
