@@ -1,6 +1,6 @@
 //
 //  AppVersionInfo.swift
-//  Feather
+//  IPAOMTK
 //
 //  Created by Nagata Asami on 27/7/25.
 //
