@@ -1,6 +1,6 @@
 //
 //  SourcesAddView.swift
-//  Feather
+//  IPAOMTK
 //
 //  Created by samara on 1.05.2025.
 //
@@ -105,7 +105,7 @@ struct SourcesAddView: View {
 							}
 						}
 					} footer: {
-						Text(.localized("Open an [Telegram](https://t.me/ashtemobile) on Telegram if you want your source to be featured."))
+						Text(.localized("Open an [Telegram](https://t.me/IPAOMTK) on Telegram if you want your source to be featured."))
 					}
 				}
 			}
