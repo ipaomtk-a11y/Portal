@@ -2,27 +2,24 @@
 //  CertificatesView.swift
 //  Feather
 //
-//  Created by samara on 15.04.2025.
+//  Professional redesign for IPAOMTK
 //
 
 import SwiftUI
 import NimbleViews
 
-// MARK: - View
 struct CertificatesView: View {
 	@AppStorage("feather.selectedCert") private var _storedSelectedCert: Int = 0
 	
 	@State private var _isAddingPresenting = false
 	@State private var _isSelectedInfoPresenting: CertificatePair?
-
-	// MARK: Fetch
+	
 	@FetchRequest(
 		entity: CertificatePair.entity(),
 		sortDescriptors: [NSSortDescriptor(keyPath: \CertificatePair.date, ascending: false)],
 		animation: .snappy
 	) private var _certificates: FetchedResults<CertificatePair>
 	
-	//
 	private var _bindingSelectedCert: Binding<Int>?
 	private var _selectedCertBinding: Binding<Int> {
 		_bindingSelectedCert ?? $_storedSelectedCert
@@ -32,31 +29,31 @@ struct CertificatesView: View {
 		self._bindingSelectedCert = selectedCert
 	}
 	
-	// MARK: Body
 	var body: some View {
-		NBGrid {
-			ForEach(Array(_certificates.enumerated()), id: \.element.uuid) { index, cert in
-				_cellButton(for: cert, at: index)
+		ZStack(alignment: .bottomTrailing) {
+			ScrollView {
+				VStack(spacing: 22) {
+					headerCard
+					
+					if _certificates.isEmpty {
+						emptyState
+					} else {
+						certificatesSection
+					}
+				}
+				.padding(.horizontal, 18)
+				.padding(.top, 16)
+				.padding(.bottom, 115)
+			}
+			.background(Color(.systemBackground).ignoresSafeArea())
+			
+			if _bindingSelectedCert == nil {
+				addFloatingButton
+					.padding(.trailing, 18)
+					.padding(.bottom, 28)
 			}
 		}
 		.navigationTitle(.localized("Certificates"))
-		.overlay {
-			if _certificates.isEmpty {
-				if #available(iOS 17, *) {
-					ContentUnavailableView {
-						Label(.localized("No Certificates"), systemImage: "questionmark.folder.fill")
-					} description: {
-						Text(.localized("Get started signing by importing your first certificate."))
-					} actions: {
-						Button {
-							_isAddingPresenting = true
-						} label: {
-							NBButton(.localized("Import"), style: .text)
-						}
-					}
-				}
-			}
-		}
 		.toolbar {
 			if _bindingSelectedCert == nil {
 				NBToolbarButton(
@@ -73,68 +70,185 @@ struct CertificatesView: View {
 		}
 		.sheet(isPresented: $_isAddingPresenting) {
 			CertificatesAddView()
-				.presentationDetents([.medium])
+				.presentationDetents([.large])
 		}
 	}
 }
 
-// MARK: - View extension
+// MARK: - UI
 extension CertificatesView {
-	@ViewBuilder
-	private func _cellButton(for cert: CertificatePair, at index: Int) -> some View {
-		let cornerRadius = {
-			if #available(iOS 26.0, *) {
-				28.0
-			} else {
-				10.5
+	private var headerCard: some View {
+		HStack(spacing: 15) {
+			ZStack {
+				LinearGradient(
+					colors: [.green, .teal],
+					startPoint: .topLeading,
+					endPoint: .bottomTrailing
+				)
+				
+				Image(systemName: "checkmark.seal.fill")
+					.font(.system(size: 30, weight: .bold))
+					.foregroundColor(.white)
 			}
-		}()
-		
+			.frame(width: 66, height: 66)
+			.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+			
+			VStack(alignment: .leading, spacing: 5) {
+				Text(.localized("Certificates"))
+					.font(.title2.bold())
+					.foregroundColor(.primary)
+				
+				Text("\(_certificates.count) signing certificates available")
+					.font(.subheadline)
+					.foregroundColor(.secondary)
+			}
+			
+			Spacer()
+		}
+		.padding(18)
+		.background(cardBackground)
+	}
+	
+	private var certificatesSection: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			HStack {
+				Text(.localized("Signing Certificates"))
+					.font(.title2.bold())
+					.foregroundColor(.primary)
+				
+				Spacer()
+				
+				Text("\(_certificates.count)")
+					.font(.footnote.bold())
+					.foregroundColor(.secondary)
+					.padding(.horizontal, 10)
+					.padding(.vertical, 6)
+					.background(Color(.secondarySystemBackground))
+					.clipShape(Capsule())
+			}
+			
+			VStack(spacing: 12) {
+				ForEach(Array(_certificates.enumerated()), id: \.element.uuid) { index, cert in
+					cellButton(for: cert, at: index)
+				}
+			}
+		}
+	}
+	
+	private var emptyState: some View {
+		VStack(spacing: 18) {
+			Image(systemName: "questionmark.folder.fill")
+				.font(.system(size: 48, weight: .semibold))
+				.foregroundColor(.accentColor)
+			
+			Text(.localized("No Certificates"))
+				.font(.title2.bold())
+				.foregroundColor(.primary)
+			
+			Text(.localized("Get started signing by importing your first certificate."))
+				.font(.subheadline)
+				.foregroundColor(.secondary)
+				.multilineTextAlignment(.center)
+			
+			Button {
+				_isAddingPresenting = true
+			} label: {
+				Label(.localized("Import Certificate"), systemImage: "plus.circle.fill")
+					.font(.headline)
+					.foregroundColor(.white)
+					.padding(.horizontal, 24)
+					.padding(.vertical, 14)
+					.background(
+						LinearGradient(
+							colors: [.green, .teal],
+							startPoint: .topLeading,
+							endPoint: .bottomTrailing
+						)
+					)
+					.clipShape(Capsule())
+			}
+		}
+		.frame(maxWidth: .infinity)
+		.padding(30)
+		.background(cardBackground)
+		.padding(.top, 70)
+	}
+	
+	private var addFloatingButton: some View {
+		Button {
+			_isAddingPresenting = true
+		} label: {
+			HStack(spacing: 10) {
+				Image(systemName: "plus.circle.fill")
+				Text(.localized("Import"))
+			}
+			.font(.headline)
+			.foregroundColor(.white)
+			.padding(.horizontal, 20)
+			.padding(.vertical, 15)
+			.background(
+				LinearGradient(
+					colors: [.green, .teal],
+					startPoint: .topLeading,
+					endPoint: .bottomTrailing
+				)
+			)
+			.clipShape(Capsule())
+			.shadow(color: .green.opacity(0.3), radius: 18, x: 0, y: 10)
+		}
+	}
+	
+	private var cardBackground: some View {
+		RoundedRectangle(cornerRadius: 28, style: .continuous)
+			.fill(Color(.secondarySystemBackground))
+			.shadow(color: .black.opacity(0.14), radius: 16, x: 0, y: 9)
+	}
+	
+	private func cellButton(for cert: CertificatePair, at index: Int) -> some View {
 		Button {
 			_selectedCertBinding.wrappedValue = index
 		} label: {
-			CertificatesCellView(
-				cert: cert
-			)
-			.padding()
-			.background(
-				RoundedRectangle(cornerRadius: cornerRadius)
-					.fill(Color(uiColor: .quaternarySystemFill))
-			)
-			.overlay(
-				RoundedRectangle(cornerRadius: cornerRadius)
-					.strokeBorder(
-						_selectedCertBinding.wrappedValue == index ? Color.accentColor : Color.clear,
-						lineWidth: 2
-					)
-			)
-			.contextMenu {
-				_contextActions(for: cert)
-				if cert.isDefault != true {
-					Divider()
-					_actions(for: cert)
+			CertificatesCellView(cert: cert)
+				.overlay(
+					RoundedRectangle(cornerRadius: 24, style: .continuous)
+						.strokeBorder(
+							_selectedCertBinding.wrappedValue == index ? Color.accentColor : Color.clear,
+							lineWidth: 2
+						)
+				)
+				.contextMenu {
+					contextActions(for: cert)
+					
+					if cert.isDefault != true {
+						Divider()
+						actions(for: cert)
+					}
 				}
-			}
-			.transaction {
-				$0.animation = nil
-			}
+				.transaction {
+					$0.animation = nil
+				}
 		}
 		.buttonStyle(.plain)
 	}
-	
+}
+
+// MARK: - Actions
+extension CertificatesView {
 	@ViewBuilder
-	private func _actions(for cert: CertificatePair) -> some View {
+	private func actions(for cert: CertificatePair) -> some View {
 		Button(.localized("Delete"), systemImage: "trash", role: .destructive) {
 			Storage.shared.deleteCertificate(for: cert)
 		}
 	}
 	
 	@ViewBuilder
-	private func _contextActions(for cert: CertificatePair) -> some View {
+	private func contextActions(for cert: CertificatePair) -> some View {
 		Button(.localized("Get Info"), systemImage: "info.circle") {
 			_isSelectedInfoPresenting = cert
 		}
+		
 		Divider()
+		
 		Button(.localized("Check Revokage"), systemImage: "person.text.rectangle") {
 			Storage.shared.revokagedCertificate(for: cert)
 		}
