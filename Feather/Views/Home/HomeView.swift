@@ -10,6 +10,7 @@ import UIKit
 
 struct HomeApp: Codable, Identifiable {
     var id: String { url }
+
     let name: String
     let version: String?
     let category: String?
@@ -26,6 +27,7 @@ struct HomeApp: Codable, Identifiable {
         if let img = image, img.hasPrefix("http") {
             return URL(string: img)
         }
+
         return URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")
     }
 
@@ -33,6 +35,7 @@ struct HomeApp: Codable, Identifiable {
         if let ban = banner, ban.hasPrefix("http") {
             return URL(string: ban)
         }
+
         return fullImageURL
     }
 }
@@ -45,33 +48,82 @@ struct WordPressPost: Codable {
     let title: WordPressRendered
     let excerpt: WordPressRendered
     let content: WordPressRendered
+    let embedded: WordPressEmbedded?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case link
+        case title
+        case excerpt
+        case content
+        case embedded = "_embedded"
+    }
 }
 
 struct WordPressRendered: Codable {
     let rendered: String
 }
 
+struct WordPressEmbedded: Codable {
+    let featuredMedia: [WordPressFeaturedMedia]?
+
+    enum CodingKeys: String, CodingKey {
+        case featuredMedia = "wp:featuredmedia"
+    }
+}
+
+struct WordPressFeaturedMedia: Codable {
+    let sourceURL: String?
+
+    enum CodingKeys: String, CodingKey {
+        case sourceURL = "source_url"
+    }
+}
+
 extension String {
     var cleanHTML: String {
-        self.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "&#8217;", with: "'")
-            .replacingOccurrences(of: "&#8211;", with: "-")
-            .replacingOccurrences(of: "&#8212;", with: "-")
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        var text = self
+
+        text = text.replacingOccurrences(of: "<br>", with: "\n")
+        text = text.replacingOccurrences(of: "<br/>", with: "\n")
+        text = text.replacingOccurrences(of: "<br />", with: "\n")
+        text = text.replacingOccurrences(of: "</p>", with: "\n")
+        text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+
+        text = text.replacingOccurrences(of: "&#038;", with: "&")
+        text = text.replacingOccurrences(of: "&#8217;", with: "'")
+        text = text.replacingOccurrences(of: "&#8216;", with: "'")
+        text = text.replacingOccurrences(of: "&#8220;", with: "\"")
+        text = text.replacingOccurrences(of: "&#8221;", with: "\"")
+        text = text.replacingOccurrences(of: "&#8211;", with: "-")
+        text = text.replacingOccurrences(of: "&#8212;", with: "-")
+        text = text.replacingOccurrences(of: "&amp;", with: "&")
+        text = text.replacingOccurrences(of: "&nbsp;", with: " ")
+        text = text.replacingOccurrences(of: "&hellip;", with: "...")
+        text = text.replacingOccurrences(of: "[...]", with: "")
+        text = text.replacingOccurrences(of: "[&hellip;]", with: "")
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func firstURLContaining(_ text: String) -> String? {
         let pattern = #"https?:\/\/[^\s"'<>]+"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return nil
+        }
 
         let range = NSRange(self.startIndex..., in: self)
         let matches = regex.matches(in: self, range: range)
 
         for match in matches {
             if let swiftRange = Range(match.range, in: self) {
-                let url = String(self[swiftRange])
+                var url = String(self[swiftRange])
+
+                url = url.replacingOccurrences(of: "\\/", with: "/")
+                url = url.replacingOccurrences(of: "&#038;", with: "&")
+                url = url.replacingOccurrences(of: "&amp;", with: "&")
+
                 if url.lowercased().contains(text.lowercased()) {
                     return url
                 }
@@ -90,7 +142,9 @@ struct HomeView: View {
     @State private var downloadedApp: HomeApp? = nil
 
     var featuredApps: [HomeApp] {
-        Array(apps.filter { $0.status == "new" || $0.status == "top" || $0.status == "update" }.prefix(3))
+        Array(apps.filter {
+            $0.status == "new" || $0.status == "top" || $0.status == "update"
+        }.prefix(3))
     }
 
     var groupedApps: [(String, [HomeApp])] {
@@ -172,9 +226,11 @@ struct HomeView: View {
 
     private func showDownloadNotification(for app: HomeApp) {
         self.downloadedApp = app
+
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             self.showNotification = true
         }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             withAnimation(.easeOut) {
                 self.showNotification = false
@@ -198,11 +254,14 @@ struct HomeView: View {
                     Text("Download Complete")
                         .font(.subheadline)
                         .fontWeight(.semibold)
+
                     Spacer()
+
                     Text("now")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+
                 Text("\(app.name) has been downloaded successfully to the Library.")
                     .font(.footnote)
                     .lineLimit(2)
@@ -227,7 +286,9 @@ struct HomeView: View {
     }
 
     private func loadApps() async {
-        guard let url = URL(string: "https://ipaomtk.com/wp-json/wp/v2/posts") else { return }
+        guard let url = URL(string: "https://ipaomtk.com/wp-json/wp/v2/posts?_embed&per_page=50") else {
+            return
+        }
 
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
@@ -236,13 +297,20 @@ struct HomeView: View {
             let (data, _) = try await URLSession.shared.data(for: request)
             let posts = try JSONDecoder().decode([WordPressPost].self, from: data)
 
-            let convertedApps: [HomeApp] = posts.map { post in
+            let convertedApps: [HomeApp] = posts.compactMap { post in
                 let title = post.title.rendered.cleanHTML
                 let excerpt = post.excerpt.rendered.cleanHTML
                 let contentHTML = post.content.rendered
 
-                let ipaURL = contentHTML.firstURLContaining(".ipa") ?? post.link
+                guard let ipaURL = contentHTML.firstURLContaining(".ipa") else {
+                    print("No IPA link found for post: \(title)")
+                    return nil
+                }
+
+                let featuredImage = post.embedded?.featuredMedia?.first?.sourceURL
+
                 let imageURL =
+                    featuredImage ??
                     contentHTML.firstURLContaining(".png") ??
                     contentHTML.firstURLContaining(".jpg") ??
                     contentHTML.firstURLContaining(".jpeg") ??
@@ -301,19 +369,29 @@ struct HomeAppDetailView: View {
                         .offset(y: offset)
 
                         HStack {
-                            Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                            Button(action: {
+                                presentationMode.wrappedValue.dismiss()
+                            }) {
                                 Image(systemName: "chevron.left")
                                     .font(.title3.weight(.bold))
                                     .foregroundColor(.primary)
                                     .frame(width: 40, height: 40)
                                     .background(Circle().fill(Color(UIColor.systemBackground).opacity(0.8)))
                             }
+
                             Spacer()
 
                             Button(action: {
                                 let shareText = "Download \(app.name) from IPAOMTK Store!\nhttps://ipaomtk.com"
                                 let av = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
-                                UIApplication.shared.windows.first?.rootViewController?.present(av, animated: true, completion: nil)
+
+                                UIApplication.shared.connectedScenes
+                                    .compactMap { $0 as? UIWindowScene }
+                                    .first?
+                                    .windows
+                                    .first?
+                                    .rootViewController?
+                                    .present(av, animated: true)
                             }) {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.title3.weight(.bold))
@@ -347,6 +425,7 @@ struct HomeAppDetailView: View {
                             Text(hacks[0])
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
+                                .lineLimit(6)
                         } else {
                             Text(app.category ?? "App")
                                 .font(.subheadline)
@@ -368,23 +447,31 @@ struct HomeAppDetailView: View {
                         Image(systemName: "tag.fill")
                             .foregroundColor(Color(UIColor.systemPurple))
                             .font(.system(size: 13))
+
                         Text(app.version ?? "1.0")
                             .font(.subheadline.bold())
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(UIColor.secondarySystemBackground)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color(UIColor.secondarySystemBackground))
+                    )
 
                     HStack {
                         Image(systemName: "shippingbox.fill")
                             .foregroundColor(.gray)
                             .font(.system(size: 13))
+
                         Text(app.size ?? "Unknown")
                             .font(.subheadline.bold())
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(UIColor.secondarySystemBackground)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color(UIColor.secondarySystemBackground))
+                    )
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
@@ -408,7 +495,9 @@ struct HomeAppDetailView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
 
-                Divider().padding(.horizontal, 20).padding(.bottom, 16)
+                Divider()
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Information")
@@ -432,11 +521,13 @@ struct HomeAppDetailView: View {
 
     private func safeAreaTop() -> CGFloat {
         let window = UIApplication.shared.connectedScenes
-            .filter({ $0.activationState == .foregroundActive })
-            .map({ $0 as? UIWindowScene })
-            .compactMap({ $0 })
-            .first?.windows
-            .filter({ $0.isKeyWindow }).first
+            .filter { $0.activationState == .foregroundActive }
+            .compactMap { $0 as? UIWindowScene }
+            .first?
+            .windows
+            .filter { $0.isKeyWindow }
+            .first
+
         return window?.safeAreaInsets.top ?? 44
     }
 }
@@ -450,10 +541,13 @@ struct AppInfoRow: View {
             HStack {
                 Text(title)
                     .foregroundColor(.primary)
+
                 Spacer()
+
                 Text(value)
                     .foregroundColor(.secondary)
             }
+
             Divider()
         }
     }
@@ -474,9 +568,13 @@ struct FeaturedAppView: View {
             .frame(height: 210)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
-            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .frame(height: 210)
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.8)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .frame(height: 210)
 
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -499,6 +597,7 @@ struct FeaturedAppView: View {
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
+
                 Spacer()
 
                 HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
@@ -518,7 +617,6 @@ struct HomeAppCardView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 8) {
-
             AsyncImage(url: app.fullImageURL) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
@@ -539,6 +637,7 @@ struct HomeAppCardView: View {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
                     .font(.system(size: 10))
+
                 Text("4.6")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
@@ -574,7 +673,10 @@ struct SocialMediaFooter: View {
         .padding(.vertical, 20)
         .padding(.horizontal)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color(UIColor.secondarySystemGroupedBackground)))
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
         .padding(.horizontal, 20)
     }
 }
@@ -630,7 +732,13 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
         self.progress = 0
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
         if totalBytesExpectedToWrite > 0 {
             DispatchQueue.main.async {
                 self.progress = CGFloat(totalBytesWritten) / CGFloat(totalBytesExpectedToWrite)
@@ -638,14 +746,20 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
         }
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
         let tempDir = FileManager.default.temporaryDirectory
         let fileName = "\(UUID().uuidString)-\(downloadURL?.lastPathComponent ?? "app.ipa")"
         let destinationURL = tempDir.appendingPathComponent(fileName)
 
         try? FileManager.default.removeItem(at: destinationURL)
+
         do {
             try FileManager.default.copyItem(at: location, to: destinationURL)
+
             DispatchQueue.main.async {
                 self.isDownloading = false
                 self.isFinished = true
@@ -658,15 +772,25 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
                 }
             }
         } catch {
-            DispatchQueue.main.async { self.isDownloading = false }
+            DispatchQueue.main.async {
+                self.isDownloading = false
+            }
         }
+
         session.finishTasksAndInvalidate()
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
         if error != nil {
-            DispatchQueue.main.async { self.isDownloading = false }
+            DispatchQueue.main.async {
+                self.isDownloading = false
+            }
         }
+
         session.finishTasksAndInvalidate()
     }
 }
@@ -720,12 +844,18 @@ struct HomeDownloadButtonView: View {
                 .frame(height: 32)
             } else {
                 Button(action: {
+                    guard app.url.lowercased().contains(".ipa") else {
+                        print("Invalid IPA URL: \(app.url)")
+                        return
+                    }
+
                     if let downloadURL = URL(string: app.url) {
                         let generator = UINotificationFeedbackGenerator()
                         generator.notificationOccurred(.success)
 
                         downloader.start(url: downloadURL) { localURL in
                             _ = downloadManager.startDownload(from: localURL)
+
                             DispatchQueue.main.async {
                                 onDownloadComplete()
                             }
