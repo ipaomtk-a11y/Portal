@@ -2,7 +2,7 @@
 //  SourcesView.swift
 //  Feather
 //
-//  Created by samara on 10.04.2025.
+//  Professional redesign for IPAOMTK
 //
 
 import CoreData
@@ -10,19 +10,22 @@ import AltSourceKit
 import SwiftUI
 import NimbleViews
 
-// MARK: - View
 struct SourcesView: View {
-	@Environment(\.horizontalSizeClass) private var horizontalSizeClass
 	#if !NIGHTLY && !DEBUG
 	@AppStorage("Feather.shouldStar") private var _shouldStar: Int = 0
 	#endif
+	
 	@StateObject var viewModel = SourcesViewModel.shared
 	@State private var _isAddingPresenting = false
 	@State private var _addingSourceLoading = false
 	@State private var _searchText = ""
 	
 	private var _filteredSources: [AltSource] {
-		_sources.filter { _searchText.isEmpty || ($0.name?.localizedCaseInsensitiveContains(_searchText) ?? false) }
+		_sources.filter {
+			_searchText.isEmpty ||
+			($0.name?.localizedCaseInsensitiveContains(_searchText) ?? false) ||
+			($0.sourceURL?.absoluteString.localizedCaseInsensitiveContains(_searchText) ?? false)
+		}
 	}
 	
 	@FetchRequest(
@@ -31,79 +34,33 @@ struct SourcesView: View {
 		animation: .snappy
 	) private var _sources: FetchedResults<AltSource>
 	
-	// MARK: Body
 	var body: some View {
 		NBNavigationView(.localized("Sources")) {
-			NBListAdaptable {
-				if !_filteredSources.isEmpty {
-					Section {
-						NavigationLink {
-							SourceAppsView(object: Array(_sources), viewModel: viewModel)
-						} label: {
-							let isRegular = horizontalSizeClass != .compact
-							HStack(spacing: 18) {
-								Image("Repositories").appIconStyle()
-								NBTitleWithSubtitleView(
-									title: .localized("All Repositories"),
-									subtitle: .localized("See all apps from your sources")
-								)
-							}
-							.padding(isRegular ? 12 : 0)
-							.background(
-								isRegular
-								? RoundedRectangle(cornerRadius: 18, style: .continuous)
-									.fill(Color(.quaternarySystemFill))
-								: nil
-							)
-						}
-						.buttonStyle(.plain)
-					}
-					
-					NBSection(
-						.localized("Repositories"),
-						secondary: _filteredSources.count.description
-					) {
-						ForEach(_filteredSources) { source in
-							NavigationLink {
-								SourceAppsView(object: [source], viewModel: viewModel)
-							} label: {
-								SourcesCellView(source: source)
-							}
-							.buttonStyle(.plain)
+			ZStack(alignment: .bottomTrailing) {
+				ScrollView {
+					VStack(spacing: 22) {
+						_headerView
+						
+						if _filteredSources.isEmpty {
+							_emptyState
+						} else {
+							_allRepositoriesCard
+							_repositoriesSection
 						}
 					}
+					.padding(.horizontal, 18)
+					.padding(.top, 12)
+					.padding(.bottom, 120)
 				}
-			}
-			.searchable(text: $_searchText, placement: .platform())
-			.overlay {
-				if _filteredSources.isEmpty {
-					if #available(iOS 17, *) {
-						ContentUnavailableView {
-							Label(.localized("No Repositories"), systemImage: "globe.desk.fill")
-						} description: {
-							Text(.localized("Get started by adding your first repository."))
-						} actions: {
-							Button {
-								_isAddingPresenting = true
-							} label: {
-								NBButton(.localized("Add Source"), style: .text)
-							}
-						}
-					}
+				.background(Color(.systemBackground).ignoresSafeArea())
+				.searchable(text: $_searchText, placement: .platform())
+				.refreshable {
+					await viewModel.fetchSources(_sources, refresh: true)
 				}
-			}
-			.toolbar {
-				NBToolbarButton(
-					systemImage: "plus",
-					style: .icon,
-					placement: .topBarTrailing,
-					isDisabled: _addingSourceLoading
-				) {
-					_isAddingPresenting = true
-				}
-			}
-			.refreshable {
-				await viewModel.fetchSources(_sources, refresh: true)
+				
+				_addFloatingButton
+					.padding(.trailing, 18)
+					.padding(.bottom, 28)
 			}
 			.sheet(isPresented: $_isAddingPresenting) {
 				SourcesAddView()
@@ -114,14 +71,11 @@ struct SourcesView: View {
 		}
 		#if !NIGHTLY && !DEBUG
 		.onAppear {
-			guard _shouldStar < 6 else { return }; _shouldStar += 1
+			guard _shouldStar < 6 else { return }
+			_shouldStar += 1
 			guard _shouldStar == 6 else { return }
 			
-			let github = UIAlertAction(title: "GitHub", style: .default) { _ in
-				UIApplication.open("https://github.com/khcrysalis/Feather")
-			}
-			
-						let telegram = UIAlertAction(title: "Telegram", style: .default) { _ in
+			let telegram = UIAlertAction(title: "Telegram", style: .default) { _ in
 				UIApplication.open("https://t.me/ipaomtk")
 			}
 			
@@ -131,9 +85,187 @@ struct SourcesView: View {
 				title: "Enjoying IPAOMTK?",
 				message: "Join our Telegram channel for more updates!",
 				actions: [telegram, cancel]
-
 			)
 		}
 		#endif
+	}
+}
+
+extension SourcesView {
+	private var _headerView: some View {
+		HStack(alignment: .center) {
+			VStack(alignment: .leading, spacing: 6) {
+				Text("Sources")
+					.font(.largeTitle.bold())
+					.foregroundColor(.primary)
+				
+				Text("\(_filteredSources.count) repositories connected")
+					.font(.subheadline)
+					.foregroundColor(.secondary)
+			}
+			
+			Spacer()
+			
+			Button {
+				_isAddingPresenting = true
+			} label: {
+				Image(systemName: "plus")
+					.font(.system(size: 20, weight: .bold))
+					.foregroundColor(.white)
+					.frame(width: 46, height: 46)
+					.background(
+						LinearGradient(
+							colors: [.indigo, .blue],
+							startPoint: .topLeading,
+							endPoint: .bottomTrailing
+						)
+					)
+					.clipShape(Circle())
+					.shadow(color: .blue.opacity(0.35), radius: 14, x: 0, y: 8)
+			}
+			.disabled(_addingSourceLoading)
+		}
+	}
+	
+	private var _allRepositoriesCard: some View {
+		NavigationLink {
+			SourceAppsView(object: Array(_sources), viewModel: viewModel)
+		} label: {
+			HStack(spacing: 14) {
+				ZStack {
+					LinearGradient(
+						colors: [.indigo, .blue],
+						startPoint: .topLeading,
+						endPoint: .bottomTrailing
+					)
+					
+					Image(systemName: "globe.desk.fill")
+						.font(.system(size: 30, weight: .semibold))
+						.foregroundColor(.white)
+				}
+				.frame(width: 64, height: 64)
+				.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+				
+				VStack(alignment: .leading, spacing: 6) {
+					Text(.localized("All Repositories"))
+						.font(.headline.weight(.semibold))
+						.foregroundColor(.primary)
+					
+					Text(.localized("See all apps from your sources"))
+						.font(.subheadline)
+						.foregroundColor(.secondary)
+				}
+				
+				Spacer()
+				
+				Image(systemName: "chevron.right")
+					.font(.footnote.weight(.bold))
+					.foregroundColor(.secondary.opacity(0.7))
+			}
+			.padding(15)
+			.background(
+				RoundedRectangle(cornerRadius: 26, style: .continuous)
+					.fill(Color(.secondarySystemBackground))
+					.shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 7)
+			)
+		}
+		.buttonStyle(.plain)
+	}
+	
+	private var _repositoriesSection: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			HStack {
+				Text(.localized("Repositories"))
+					.font(.title2.bold())
+					.foregroundColor(.primary)
+				
+				Spacer()
+				
+				Text("\(_filteredSources.count)")
+					.font(.footnote.bold())
+					.foregroundColor(.secondary)
+					.padding(.horizontal, 10)
+					.padding(.vertical, 6)
+					.background(Color(.secondarySystemBackground))
+					.clipShape(Capsule())
+			}
+			
+			VStack(spacing: 12) {
+				ForEach(_filteredSources) { source in
+					NavigationLink {
+						SourceAppsView(object: [source], viewModel: viewModel)
+					} label: {
+						SourcesCellView(source: source)
+					}
+					.buttonStyle(.plain)
+				}
+			}
+		}
+	}
+	
+	private var _emptyState: some View {
+		VStack(spacing: 18) {
+			Image(systemName: "globe.desk.fill")
+				.font(.system(size: 48, weight: .semibold))
+				.foregroundColor(.accentColor)
+			
+			Text(.localized("No Repositories"))
+				.font(.title2.bold())
+			
+			Text(.localized("Get started by adding your first repository."))
+				.font(.subheadline)
+				.foregroundColor(.secondary)
+				.multilineTextAlignment(.center)
+			
+			Button {
+				_isAddingPresenting = true
+			} label: {
+				Label(.localized("Add Source"), systemImage: "plus.circle.fill")
+					.font(.headline)
+					.foregroundColor(.white)
+					.padding(.horizontal, 24)
+					.padding(.vertical, 14)
+					.background(
+						LinearGradient(
+							colors: [.indigo, .blue],
+							startPoint: .topLeading,
+							endPoint: .bottomTrailing
+						)
+					)
+					.clipShape(Capsule())
+			}
+		}
+		.frame(maxWidth: .infinity)
+		.padding(30)
+		.background(
+			RoundedRectangle(cornerRadius: 28, style: .continuous)
+				.fill(Color(.secondarySystemBackground))
+		)
+		.padding(.top, 80)
+	}
+	
+	private var _addFloatingButton: some View {
+		Button {
+			_isAddingPresenting = true
+		} label: {
+			HStack(spacing: 10) {
+				Image(systemName: "plus.circle.fill")
+				Text(.localized("Add Source"))
+			}
+			.font(.headline)
+			.foregroundColor(.white)
+			.padding(.horizontal, 20)
+			.padding(.vertical, 15)
+			.background(
+				LinearGradient(
+					colors: [.indigo, .blue],
+					startPoint: .topLeading,
+					endPoint: .bottomTrailing
+				)
+			)
+			.clipShape(Capsule())
+			.shadow(color: .blue.opacity(0.35), radius: 18, x: 0, y: 10)
+		}
+		.disabled(_addingSourceLoading)
 	}
 }
