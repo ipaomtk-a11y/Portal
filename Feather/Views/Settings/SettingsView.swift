@@ -31,43 +31,43 @@ struct SettingsView: View {
 	var body: some View {
 		NBNavigationView(.localized("Settings")) {
 			ScrollView {
-				VStack(spacing: 22) {
+				VStack(spacing: 24) {
 					headerCard
-					feedbackCard
+					accountCard
 					preferencesCard
 					certificatesCard
 					featuresCard
-					directoriesCard
+					storageCard
 					resetCard
 				}
 				.padding(.horizontal, 18)
-				.padding(.top, 14)
-				.padding(.bottom, 35)
+				.padding(.top, 16)
+				.padding(.bottom, 40)
 			}
-			.background(Color.black.ignoresSafeArea())
+			.background(Color(.systemBackground).ignoresSafeArea())
 		}
 	}
 }
 
-// MARK: - Components
+// MARK: - Cards
 extension SettingsView {
 	private var headerCard: some View {
 		VStack(spacing: 18) {
 			AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
-				image.resizable().scaledToFit()
+				image.resizable().scaledToFill()
 			} placeholder: {
 				ProgressView()
 			}
-			.frame(width: 92, height: 92)
-			.clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-			.shadow(color: .blue.opacity(0.25), radius: 20, x: 0, y: 10)
+			.frame(width: 105, height: 105)
+			.clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+			.shadow(color: .blue.opacity(0.25), radius: 18, x: 0, y: 10)
 			
 			VStack(spacing: 6) {
 				Text("IPAOMTK")
-					.font(.title2.bold())
+					.font(.title.bold())
 					.foregroundColor(.primary)
 				
-				Text("Manage signing, certificates, and app preferences.")
+				Text("Professional IPA signing, certificates, and app management.")
 					.font(.subheadline)
 					.foregroundColor(.secondary)
 					.multilineTextAlignment(.center)
@@ -80,7 +80,7 @@ extension SettingsView {
 					.font(.headline)
 					.foregroundColor(.white)
 					.frame(maxWidth: .infinity)
-					.padding(.vertical, 15)
+					.padding(.vertical, 16)
 					.background(
 						LinearGradient(
 							colors: [.blue, .cyan],
@@ -88,142 +88,163 @@ extension SettingsView {
 							endPoint: .bottomTrailing
 						)
 					)
-					.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+					.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+					.shadow(color: .blue.opacity(0.25), radius: 14, x: 0, y: 8)
 			}
 		}
-		.padding(22)
+		.padding(24)
 		.background(cardBackground)
 	}
 	
-	private var feedbackCard: some View {
+	private var accountCard: some View {
 		settingsCard {
-			SettingsRow(title: "About \(Bundle.main.name)", icon: "info.circle.fill") {
+			SettingsRow(title: "About \(Bundle.main.name)", icon: "info.circle.fill", tint: .blue) {
 				AboutView()
 			}
 			
-			SettingsButtonRow(title: "Telegram", icon: "paperplane.fill") {
+			SettingsButtonRow(title: "Telegram", icon: "paperplane.fill", tint: .blue) {
 				openURL("https://t.me/IPAOMTK")
 			}
 			
-			SettingsButtonRow(title: "Website", icon: "safari.fill") {
+			SettingsButtonRow(title: "Website", icon: "safari.fill", tint: .green) {
 				openURL("https://www.ipaomtk.com/")
 			}
 		}
 	}
 	
 	private var preferencesCard: some View {
-		settingsCard {
-			SettingsRow(title: .localized("Appearance"), icon: "paintbrush.fill") {
+		groupCard(title: "Preferences", footer: nil) {
+			SettingsRow(title: .localized("Appearance"), icon: "paintbrush.fill", tint: .purple) {
 				AppearanceView()
 			}
 			
-			SettingsRow(title: .localized("App Icon"), icon: "app.badge.fill") {
+			SettingsRow(title: .localized("App Icon"), icon: "app.badge.fill", tint: .indigo) {
 				AppIconView(currentIcon: $_currentIcon)
 			}
 		}
 	}
 	
 	private var certificatesCard: some View {
-		VStack(alignment: .leading, spacing: 12) {
-			sectionTitle("Certificates")
-			
-			settingsCard {
-				if let cert = selectedCertificate {
-					CertificatesCellView(cert: cert)
-				} else {
+		groupCard(
+			title: "Certificates",
+			footer: "Add and manage certificates used for signing applications."
+		) {
+			if let cert = selectedCertificate {
+				CertificatesCellView(cert: cert)
+					.padding(.horizontal, 16)
+					.padding(.vertical, 10)
+			} else {
+				HStack(spacing: 14) {
+					Image(systemName: "xmark.seal.fill")
+						.font(.system(size: 18, weight: .semibold))
+						.foregroundColor(.orange)
+						.frame(width: 38, height: 38)
+						.background(Color.orange.opacity(0.14))
+						.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+					
 					Text(.localized("No Certificate"))
-						.font(.subheadline)
+						.font(.body.weight(.medium))
 						.foregroundColor(.secondary)
-						.padding(.vertical, 8)
+					
+					Spacer()
 				}
-				
-				SettingsRow(title: .localized("Certificates"), icon: "checkmark.seal.fill") {
-					CertificatesView()
-				}
+				.padding(.horizontal, 16)
+				.padding(.vertical, 13)
 			}
 			
-			sectionFooter("Add and manage certificates used for signing applications.")
+			SettingsRow(title: .localized("Certificates"), icon: "checkmark.seal.fill", tint: .green) {
+				CertificatesView()
+			}
 		}
 	}
 	
 	private var featuresCard: some View {
-		VStack(alignment: .leading, spacing: 12) {
-			sectionTitle("Features")
-			
-			settingsCard {
-				SettingsRow(title: .localized("Signing Options"), icon: "signature") {
-					ConfigurationView()
-				}
-				
-				SettingsRow(title: .localized("Archive & Compression"), icon: "archivebox.fill") {
-					ArchiveView()
-				}
-				
-				SettingsRow(title: .localized("Installation"), icon: "arrow.down.circle.fill") {
-					InstallationView()
-				}
+		groupCard(
+			title: "Features",
+			footer: "Configure signing, compression, installation, and app modifications."
+		) {
+			SettingsRow(title: .localized("Signing Options"), icon: "signature", tint: .blue) {
+				ConfigurationView()
 			}
 			
-			sectionFooter("Configure installation, compression levels, and app modifications.")
+			SettingsRow(title: .localized("Archive & Compression"), icon: "archivebox.fill", tint: .orange) {
+				ArchiveView()
+			}
+			
+			SettingsRow(title: .localized("Installation"), icon: "arrow.down.circle.fill", tint: .green) {
+				InstallationView()
+			}
 		}
 	}
 	
-	private var directoriesCard: some View {
-		VStack(alignment: .leading, spacing: 12) {
-			sectionTitle("Misc")
-			
-			settingsCard {
-				SettingsButtonRow(title: .localized("Open Documents"), icon: "folder.fill") {
-					UIApplication.open(URL.documentsDirectory.toSharedDocumentsURL()!)
-				}
-				
-				SettingsButtonRow(title: .localized("Open Archives"), icon: "archivebox.fill") {
-					UIApplication.open(FileManager.default.archives.toSharedDocumentsURL()!)
-				}
-				
-				SettingsButtonRow(title: .localized("Open Certificates"), icon: "folder.badge.gearshape.fill") {
-					UIApplication.open(FileManager.default.certificates.toSharedDocumentsURL()!)
-				}
+	private var storageCard: some View {
+		groupCard(
+			title: "Storage",
+			footer: "Quick access to IPAOMTK files stored in Documents."
+		) {
+			SettingsButtonRow(title: .localized("Open Documents"), icon: "folder.fill", tint: .blue) {
+				UIApplication.open(URL.documentsDirectory.toSharedDocumentsURL()!)
 			}
 			
-			sectionFooter("Quick access to IPAOMTK files stored in Documents.")
+			SettingsButtonRow(title: .localized("Open Archives"), icon: "archivebox.fill", tint: .orange) {
+				UIApplication.open(FileManager.default.archives.toSharedDocumentsURL()!)
+			}
+			
+			SettingsButtonRow(title: .localized("Open Certificates"), icon: "folder.badge.gearshape.fill", tint: .green) {
+				UIApplication.open(FileManager.default.certificates.toSharedDocumentsURL()!)
+			}
 		}
 	}
 	
 	private var resetCard: some View {
-		settingsCard {
+		groupCard(title: "Danger Zone", footer: "Reset application sources, certificates, apps, and general contents.") {
 			SettingsRow(title: .localized("Reset"), icon: "trash.fill", tint: .red) {
 				ResetView()
 			}
 		}
 	}
-	
+}
+
+// MARK: - Helpers
+extension SettingsView {
 	private var cardBackground: some View {
-		RoundedRectangle(cornerRadius: 26, style: .continuous)
+		RoundedRectangle(cornerRadius: 30, style: .continuous)
 			.fill(Color(.secondarySystemBackground))
-			.shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 10)
+			.shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
 	}
 	
 	private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
 		VStack(spacing: 0) {
 			content()
 		}
-		.padding(.vertical, 6)
+		.padding(.vertical, 8)
 		.background(cardBackground)
 	}
 	
-	private func sectionTitle(_ title: String) -> some View {
-		Text(title)
-			.font(.title3.bold())
-			.foregroundColor(.primary)
-			.padding(.horizontal, 4)
-	}
-	
-	private func sectionFooter(_ text: String) -> some View {
-		Text(text)
-			.font(.footnote)
-			.foregroundColor(.secondary)
-			.padding(.horizontal, 4)
+	private func groupCard<Content: View>(
+		title: String,
+		footer: String?,
+		@ViewBuilder content: () -> Content
+	) -> some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Text(title)
+				.font(.title3.bold())
+				.foregroundColor(.primary)
+				.padding(.horizontal, 4)
+			
+			VStack(spacing: 0) {
+				content()
+			}
+			.padding(.vertical, 8)
+			.background(cardBackground)
+			
+			if let footer {
+				Text(footer)
+					.font(.footnote)
+					.foregroundColor(.secondary)
+					.padding(.horizontal, 4)
+			}
+		}
 	}
 	
 	private func openURL(_ string: String) {
@@ -244,6 +265,7 @@ private struct SettingsRow<Destination: View>: View {
 		NavigationLink(destination: destination()) {
 			rowContent
 		}
+		.buttonStyle(.plain)
 	}
 	
 	private var rowContent: some View {
@@ -251,18 +273,22 @@ private struct SettingsRow<Destination: View>: View {
 			Image(systemName: icon)
 				.font(.system(size: 18, weight: .semibold))
 				.foregroundColor(tint)
-				.frame(width: 32, height: 32)
+				.frame(width: 38, height: 38)
 				.background(tint.opacity(0.14))
-				.clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+				.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 			
 			Text(title)
-				.font(.body.weight(.medium))
+				.font(.body.weight(.semibold))
 				.foregroundColor(.primary)
 			
 			Spacer()
+			
+			Image(systemName: "chevron.right")
+				.font(.footnote.weight(.bold))
+				.foregroundColor(.secondary.opacity(0.75))
 		}
 		.padding(.horizontal, 16)
-		.padding(.vertical, 13)
+		.padding(.vertical, 14)
 	}
 }
 
@@ -278,22 +304,22 @@ private struct SettingsButtonRow: View {
 				Image(systemName: icon)
 					.font(.system(size: 18, weight: .semibold))
 					.foregroundColor(tint)
-					.frame(width: 32, height: 32)
+					.frame(width: 38, height: 38)
 					.background(tint.opacity(0.14))
-					.clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+					.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 				
 				Text(title)
-					.font(.body.weight(.medium))
+					.font(.body.weight(.semibold))
 					.foregroundColor(.primary)
 				
 				Spacer()
 				
 				Image(systemName: "arrow.up.right")
-					.font(.footnote.weight(.semibold))
-					.foregroundColor(.secondary)
+					.font(.footnote.weight(.bold))
+					.foregroundColor(.secondary.opacity(0.75))
 			}
 			.padding(.horizontal, 16)
-			.padding(.vertical, 13)
+			.padding(.vertical, 14)
 		}
 		.buttonStyle(.plain)
 	}
