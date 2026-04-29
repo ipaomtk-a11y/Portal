@@ -2,7 +2,7 @@
 //  SettingsDonationCellView.swift
 //  Feather
 //
-//  Created by samara on 30.04.2025.
+//  Professional redesign for IPAOMTK
 //
 
 #if !NIGHTLY && !DEBUG
@@ -13,80 +13,119 @@ struct SettingsDonationCellView: View {
 	var site: String
 	
 	var body: some View {
-		Section {
+		VStack(spacing: 18) {
+			header
+			
 			VStack(spacing: 14) {
-				_title()
-				_benefit(
-					.localized("Remove this Alert"),
-					.localized("Remove annoying alerts like these after getting beta access!"),
-					systemName: "heart.text.square.fill"
-				)
-				_benefit(
-					.localized("Exclusive Features"),
-					.localized("After gaining beta access, you're able to use exclusive features that may not be present on releases!"),
-					systemName: "timer"
-				)
-				_benefit(
-					.localized("Show Your Support"),
-					.localized("Show your support by donating! If you're unable to donate, spreading the word works too!"),
-					systemName: "heart.fill"
+				benefit(
+					.localized("Remove Alerts"),
+					.localized("Get beta access and remove donation reminder alerts."),
+					systemName: "bell.slash.fill",
+					color: .pink
 				)
 				
-				Button() {
-					UIApplication.open(site)
-				} label: {
-					_sheetButton(.localized("Donate"))
-				}
-				.frame(height: 45)
+				benefit(
+					.localized("Exclusive Features"),
+					.localized("Unlock early beta features before public releases."),
+					systemName: "sparkles",
+					color: .purple
+				)
+				
+				benefit(
+					.localized("Support IPAOMTK"),
+					.localized("Help support future updates and development."),
+					systemName: "heart.fill",
+					color: .red
+				)
 			}
-			.padding(.vertical, 12)
+			
+			Button {
+				UIApplication.open(site)
+			} label: {
+				HStack(spacing: 10) {
+					Image(systemName: "heart.fill")
+					Text(.localized("Donate"))
+				}
+				.font(.headline)
+				.foregroundColor(.white)
+				.frame(maxWidth: .infinity)
+				.padding(.vertical, 15)
+				.background(
+					LinearGradient(
+						colors: [.pink, .red],
+						startPoint: .topLeading,
+						endPoint: .bottomTrailing
+					)
+				)
+				.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+				.shadow(color: .pink.opacity(0.3), radius: 14, x: 0, y: 8)
+			}
 			.buttonStyle(.plain)
 		}
+		.padding(22)
+		.background(
+			RoundedRectangle(cornerRadius: 28, style: .continuous)
+				.fill(Color(.secondarySystemBackground))
+				.shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 10)
+		)
 	}
 	
-	@ViewBuilder
-	private func _title() -> some View {
-		VStack(alignment: .center, spacing: 12) {
-			Image(systemName: "heart")
-				.font(.system(size: 38, weight: .bold))
-				.foregroundStyle(.pink)
+	private var header: some View {
+		VStack(spacing: 12) {
+			ZStack {
+				LinearGradient(
+					colors: [.pink, .red],
+					startPoint: .topLeading,
+					endPoint: .bottomTrailing
+				)
+				
+				Image(systemName: "heart.fill")
+					.font(.system(size: 34, weight: .bold))
+					.foregroundColor(.white)
+			}
+			.frame(width: 78, height: 78)
+			.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 			
-			Text(.localized("Donations"))
-				.font(.title)
-				.bold()
+			VStack(spacing: 5) {
+				Text(.localized("Donations"))
+					.font(.title2.bold())
+					.foregroundColor(.primary)
+				
+				Text(.localized("Support IPAOMTK development."))
+					.font(.subheadline)
+					.foregroundColor(.secondary)
+					.multilineTextAlignment(.center)
+			}
 		}
-		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 	}
 	
-	@ViewBuilder
-	private func _benefit(
+	private func benefit(
 		_ title: String,
 		_ desc: String,
-		systemName: String
+		systemName: String,
+		color: Color
 	) -> some View {
-		HStack(alignment: .center, spacing: 14) {
+		HStack(spacing: 14) {
 			Image(systemName: systemName)
-				.font(.system(size: 32))
-				.foregroundStyle(.tint)
-				.frame(width: 39, alignment: .center)
+				.font(.system(size: 18, weight: .semibold))
+				.foregroundColor(color)
+				.frame(width: 42, height: 42)
+				.background(color.opacity(0.14))
+				.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 			
-			NBTitleWithSubtitleView(
-				title: title,
-				subtitle: desc
-			).fixedSize(horizontal: false, vertical: true)
+			VStack(alignment: .leading, spacing: 4) {
+				Text(title)
+					.font(.headline)
+					.foregroundColor(.primary)
+				
+				Text(desc)
+					.font(.footnote)
+					.foregroundColor(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
+			}
+			
+			Spacer()
 		}
-	}
-	
-	@ViewBuilder
-	private func _sheetButton(_ title: String) -> some View {
-		Text(title)
-			.frame(maxWidth: .infinity, maxHeight: .infinity)
-			.background(Color.accentColor)
-			.foregroundColor(.white)
-			.clipShape(
-				RoundedRectangle(cornerRadius: 12, style: .continuous)
-			)
-			.bold()
 	}
 }
 
