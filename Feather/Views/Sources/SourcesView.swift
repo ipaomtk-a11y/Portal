@@ -128,7 +128,7 @@ struct SourcesView: View {
 			let cancel = UIAlertAction(title: .localized("Dismiss"), style: .cancel)
 			
 			UIAlertController.showAlert(
-				title: "Enjoying AshteMobile?",
+				title: "Enjoying IPAOMTK?",
 				message: "Join our Telegram channel for more updates!",
 				actions: [telegram, cancel]
 
