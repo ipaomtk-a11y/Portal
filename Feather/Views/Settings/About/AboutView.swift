@@ -43,7 +43,7 @@ struct AboutView: View {
 			
 			NBSection("Social Media") {
 				_socialRow(name: "Telegram", url: "https://t.me/IPAOMTK", icon: "paperplane.fill", color: .blue)
-				_socialRow(name: "Instagram", url: "https://www.IPAOMTK.com/", icon: "bi bi-browser-chrome", color: .purple)
+				_socialRow(name: "Website", url: "https://www.IPAOMTK.com/", icon: "globe.americas.fill", color: .purple)
 				_socialRow(name: "TikTok", url: "https://www.tiktok.com/@IPAOMTK", icon: "play.tv.fill", color: .primary)
 			}
 			
