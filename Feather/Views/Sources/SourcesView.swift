@@ -122,7 +122,7 @@ struct SourcesView: View {
 			}
 			
 						let telegram = UIAlertAction(title: "Telegram", style: .default) { _ in
-				UIApplication.open("https://t.me/ashtemobile")
+				UIApplication.open("https://t.me/ipaomtk")
 			}
 			
 			let cancel = UIAlertAction(title: .localized("Dismiss"), style: .cancel)
