@@ -2,7 +2,7 @@
 //  SourcesViewModel.swift
 //  IPAOMTK
 //
-//  Created by samara on 30.04.2025.
+//  Professional cleaned version for IPAOMTK
 //
 
 import Foundation
@@ -10,7 +10,6 @@ import AltSourceKit
 import SwiftUI
 import NimbleJSON
 
-// MARK: - Class
 final class SourcesViewModel: ObservableObject {
 	static let shared = SourcesViewModel()
 	
@@ -18,22 +17,36 @@ final class SourcesViewModel: ObservableObject {
 	
 	private let _dataService = NBFetchService()
 	
-	var isFinished = true
 	@Published var sources: [AltSource: ASRepository] = [:]
+	@Published var isLoading = false
 	
-	func fetchSources(_ sources: FetchedResults<AltSource>, refresh: Bool = false, batchSize: Int = 4) async {
+	var isFinished = true
+	
+	func fetchSources(
+		_ sources: FetchedResults<AltSource>,
+		refresh: Bool = false,
+		batchSize: Int = 4
+	) async {
 		guard isFinished else { return }
 		
-		// check if sources to be fetched are the same as before, if yes, return
-		// also skip check if refresh is true
-		if !refresh, sources.allSatisfy({ self.sources[$0] != nil }) { return }
+		if !refresh, sources.allSatisfy({ self.sources[$0] != nil }) {
+			return
+		}
 		
-		// isfinished is used to prevent multiple fetches at the same time
 		isFinished = false
-		defer { isFinished = true }
 		
 		await MainActor.run {
-			self.sources = [:]
+			self.isLoading = true
+			if refresh {
+				self.sources = [:]
+			}
+		}
+		
+		defer {
+			Task { @MainActor in
+				self.isLoading = false
+			}
+			isFinished = true
 		}
 		
 		let sourcesArray = Array(sources)
@@ -42,7 +55,10 @@ final class SourcesViewModel: ObservableObject {
 			let endIndex = min(startIndex + batchSize, sourcesArray.count)
 			let batch = sourcesArray[startIndex..<endIndex]
 			
-			let batchResults = await withTaskGroup(of: (AltSource, ASRepository?).self, returning: [AltSource: ASRepository].self) { group in
+			let batchResults = await withTaskGroup(
+				of: (AltSource, ASRepository?).self,
+				returning: [AltSource: ASRepository].self
+			) { group in
 				for source in batch {
 					group.addTask {
 						guard let url = source.sourceURL else {
@@ -54,7 +70,7 @@ final class SourcesViewModel: ObservableObject {
 								switch result {
 								case .success(let repo):
 									continuation.resume(returning: (source, repo))
-								case .failure(_):
+								case .failure:
 									continuation.resume(returning: (source, nil))
 								}
 							}
@@ -63,11 +79,13 @@ final class SourcesViewModel: ObservableObject {
 				}
 				
 				var results = [AltSource: ASRepository]()
+				
 				for await (source, repo) in group {
 					if let repo {
 						results[source] = repo
 					}
 				}
+				
 				return results
 			}
 			
