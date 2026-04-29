@@ -8,71 +8,51 @@ import NimbleViews
 import Foundation
 import UIKit
 
-struct HomeApp: Codable, Identifiable {
+struct HomeApp: Identifiable {
     var id: String { url }
 
     let name: String
-    let version: String?
-    let category: String?
+    let description: String
     let image: String?
-    let size: String?
-    let developer: String?
-    let bundle: String?
     let url: String
-    let status: String?
-    let banner: String?
-    let hack: [String]?
+    let isIPA: Bool
+    let category: String
 
-    var fullImageURL: URL? {
-        if let img = image, img.hasPrefix("http") {
-            return URL(string: img)
+    var imageURL: URL? {
+        if let image, image.hasPrefix("http") {
+            return URL(string: image)
         }
-
         return URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")
     }
-
-    var fullBannerURL: URL? {
-        if let ban = banner, ban.hasPrefix("http") {
-            return URL(string: ban)
-        }
-
-        return fullImageURL
-    }
 }
-
-// MARK: - WordPress API Models
 
 struct WordPressPost: Codable {
     let id: Int
     let link: String
-    let title: WordPressRendered
-    let excerpt: WordPressRendered
-    let content: WordPressRendered
-    let embedded: WordPressEmbedded?
+    let title: RenderedText
+    let excerpt: RenderedText
+    let content: RenderedText
+    let embedded: EmbeddedData?
 
     enum CodingKeys: String, CodingKey {
-        case id
-        case link
-        case title
-        case excerpt
-        case content
+        case id, link, title, excerpt, content
         case embedded = "_embedded"
     }
 }
 
-struct WordPressRendered: Codable {
+struct RenderedText: Codable {
     let rendered: String
 }
 
-struct WordPressEmbedded: Codable {
-    let featuredMedia: [WordPressFeaturedMedia]?
+struct EmbeddedData: Codable {
+    let featuredMedia: [FeaturedMedia]?
 
     enum CodingKeys: String, CodingKey {
         case featuredMedia = "wp:featuredmedia"
     }
 }
 
-struct WordPressFeaturedMedia: Codable {
+struct FeaturedMedia: Codable {
     let sourceURL: String?
 
     enum CodingKeys: String, CodingKey {
@@ -100,13 +80,13 @@ extension String {
         text = text.replacingOccurrences(of: "&amp;", with: "&")
         text = text.replacingOccurrences(of: "&nbsp;", with: " ")
         text = text.replacingOccurrences(of: "&hellip;", with: "...")
-        text = text.replacingOccurrences(of: "[...]", with: "")
         text = text.replacingOccurrences(of: "[&hellip;]", with: "")
+        text = text.replacingOccurrences(of: "[...]", with: "")
 
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    func firstURLContaining(_ text: String) -> String? {
+    func firstURLContaining(_ keyword: String) -> String? {
         let pattern = #"https?:\/\/[^\s"'<>]+"#
 
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
@@ -118,14 +98,13 @@ extension String {
 
         for match in matches {
             if let swiftRange = Range(match.range, in: self) {
-                var url = String(self[swiftRange])
+                var foundURL = String(self[swiftRange])
+                foundURL = foundURL.replacingOccurrences(of: "\\/", with: "/")
+                foundURL = foundURL.replacingOccurrences(of: "&#038;", with: "&")
+                foundURL = foundURL.replacingOccurrences(of: "&amp;", with: "&")
 
-                url = url.replacingOccurrences(of: "\\/", with: "/")
-                url = url.replacingOccurrences(of: "&#038;", with: "&")
-                url = url.replacingOccurrences(of: "&amp;", with: "&")
-
-                if url.lowercased().contains(text.lowercased()) {
-                    return url
+                if foundURL.lowercased().contains(keyword.lowercased()) {
+                    return foundURL
                 }
             }
         }
@@ -137,175 +116,117 @@ extension String {
 struct HomeView: View {
     @StateObject var downloadManager = DownloadManager.shared
     @State private var apps: [HomeApp] = []
-
-    @State private var showNotification = false
-    @State private var downloadedApp: HomeApp? = nil
-
-    var featuredApps: [HomeApp] {
-        Array(apps.filter {
-            $0.status == "new" || $0.status == "top" || $0.status == "update"
-        }.prefix(3))
-    }
-
-    var groupedApps: [(String, [HomeApp])] {
-        let dict = Dictionary(grouping: apps, by: { $0.category ?? "Apps" })
-        return dict.sorted { $0.key < $1.key }
-    }
+    @State private var isLoading = true
+    @State private var errorMessage: String?
 
     var body: some View {
-        ZStack(alignment: .top) {
-            NBNavigationView("Home") {
-                ScrollView {
-                    VStack(spacing: 30) {
-
-                        if !featuredApps.isEmpty {
-                            TabView {
-                                ForEach(featuredApps) { app in
-                                    NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
-                                        showDownloadNotification(for: app)
-                                    }) {
-                                        FeaturedAppView(app: app, downloadManager: downloadManager) {
-                                            showDownloadNotification(for: app)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .frame(height: 240)
-                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                        }
-
-                        VStack(alignment: .leading, spacing: 30) {
-                            ForEach(groupedApps, id: \.0) { category, categoryApps in
-                                VStack(alignment: .leading, spacing: 15) {
-                                    Text(category)
-                                        .font(.title3.bold())
-                                        .padding(.horizontal, 20)
-
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        LazyHStack(spacing: 16) {
-                                            ForEach(categoryApps) { app in
-                                                NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
-                                                    showDownloadNotification(for: app)
-                                                }) {
-                                                    HomeAppCardView(app: app, downloadManager: downloadManager) {
-                                                        showDownloadNotification(for: app)
-                                                    }
-                                                }
-                                                .buttonStyle(.plain)
-                                            }
-                                        }
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 8)
-                                    }
-                                }
-                            }
-                        }
-
+        NBNavigationView("Home") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    if isLoading {
+                        ProgressView("Loading IPAOMTK...")
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 80)
+                    } else if let errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .padding()
+                    } else if apps.isEmpty {
+                        Text("No posts found.")
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else {
+                        featuredSection
+                        appsSection
                         SocialMediaFooter()
-                            .padding(.top, 10)
                             .padding(.bottom, 30)
                     }
-                    .padding(.top, 10)
                 }
-                .refreshable {
-                    await loadApps()
-                }
+                .padding(.top, 10)
             }
-            .onAppear {
-                Task { await loadApps() }
+            .refreshable {
+                await loadApps()
             }
-
-            if showNotification, let app = downloadedApp {
-                notificationBanner(for: app)
-                    .padding(.top, 8)
-                    .zIndex(100)
+        }
+        .onAppear {
+            Task {
+                await loadApps()
             }
         }
     }
 
-    private func showDownloadNotification(for app: HomeApp) {
-        self.downloadedApp = app
+    var featuredSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Featured")
+                .font(.title2.bold())
+                .padding(.horizontal, 20)
 
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            self.showNotification = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            withAnimation(.easeOut) {
-                self.showNotification = false
+            TabView {
+                ForEach(apps.prefix(5)) { app in
+                    NavigationLink {
+                        HomeAppDetailView(app: app, downloadManager: downloadManager)
+                    } label: {
+                        FeaturedCard(app: app, downloadManager: downloadManager)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .frame(height: 250)
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
         }
     }
 
-    @ViewBuilder
-    private func notificationBanner(for app: HomeApp) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Color.black
-            }
-            .frame(width: 42, height: 42)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    var appsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Apps")
+                .font(.title2.bold())
+                .padding(.horizontal, 20)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Download Complete")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-
-                    Spacer()
-
-                    Text("now")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 18) {
+                ForEach(apps) { app in
+                    NavigationLink {
+                        HomeAppDetailView(app: app, downloadManager: downloadManager)
+                    } label: {
+                        AppGridCard(app: app, downloadManager: downloadManager)
+                    }
+                    .buttonStyle(.plain)
                 }
-
-                Text("\(app.name) has been downloaded successfully to the Library.")
-                    .font(.footnote)
-                    .lineLimit(2)
             }
-
-            AsyncImage(url: app.fullImageURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Color.gray.opacity(0.3)
-            }
-            .frame(width: 42, height: 42)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.horizontal, 20)
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(UIColor.systemBackground).opacity(0.95))
-                .shadow(color: Color.black.opacity(0.15), radius: 15, x: 0, y: 5)
-        )
-        .padding(.horizontal, 16)
-        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private func loadApps() async {
+        DispatchQueue.main.async {
+            self.isLoading = true
+            self.errorMessage = nil
+        }
+
         guard let url = URL(string: "https://ipaomtk.com/wp-json/wp/v2/posts?_embed&per_page=50") else {
+            DispatchQueue.main.async {
+                self.errorMessage = "Bad WordPress URL."
+                self.isLoading = false
+            }
             return
         }
 
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-
         do {
+            var request = URLRequest(url: url)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+
             let (data, _) = try await URLSession.shared.data(for: request)
             let posts = try JSONDecoder().decode([WordPressPost].self, from: data)
 
-            let convertedApps: [HomeApp] = posts.compactMap { post in
+            let convertedApps: [HomeApp] = posts.map { post in
                 let title = post.title.rendered.cleanHTML
                 let excerpt = post.excerpt.rendered.cleanHTML
                 let contentHTML = post.content.rendered
 
-                guard let ipaURL = contentHTML.firstURLContaining(".ipa") else {
-                    print("No IPA link found for post: \(title)")
-                    return nil
-                }
+                let ipaURL = contentHTML.firstURLContaining(".ipa")
+                let finalURL = ipaURL ?? post.link
 
                 let featuredImage = post.embedded?.featuredMedia?.first?.sourceURL
 
@@ -318,393 +239,228 @@ struct HomeView: View {
 
                 return HomeApp(
                     name: title.isEmpty ? "IPAOMTK App" : title,
-                    version: "1.0",
-                    category: "Apps",
+                    description: excerpt.isEmpty ? "Download from IPAOMTK." : excerpt,
                     image: imageURL,
-                    size: "Unknown",
-                    developer: "IPAOMTK",
-                    bundle: nil,
-                    url: ipaURL,
-                    status: "new",
-                    banner: imageURL,
-                    hack: [excerpt.isEmpty ? "Download from IPAOMTK." : excerpt]
+                    url: finalURL,
+                    isIPA: ipaURL != nil,
+                    category: "Apps"
                 )
             }
 
             DispatchQueue.main.async {
                 self.apps = convertedApps
+                self.isLoading = false
             }
         } catch {
-            print("Error loading WordPress posts: \(error)")
+            DispatchQueue.main.async {
+                self.errorMessage = "Could not load WordPress posts: \(error.localizedDescription)"
+                self.isLoading = false
+            }
         }
+    }
+}
+
+struct FeaturedCard: View {
+    let app: HomeApp
+    @ObservedObject var downloadManager: DownloadManager
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            AsyncImage(url: app.imageURL) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color.gray.opacity(0.25)
+            }
+            .frame(height: 220)
+            .clipped()
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.9)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(app.isIPA ? "IPA" : "POST")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(app.isIPA ? Color.blue : Color.orange)
+                    .foregroundColor(.white)
+                    .clipShape(Capsule())
+
+                Text(app.name)
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+
+                Text(app.description)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(2)
+
+                DownloadOrOpenButton(app: app, downloadManager: downloadManager)
+                    .frame(width: 110)
+                    .padding(.top, 4)
+            }
+            .padding(18)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .padding(.horizontal, 20)
+    }
+}
+
+struct AppGridCard: View {
+    let app: HomeApp
+    @ObservedObject var downloadManager: DownloadManager
+
+    var body: some View {
+        VStack(spacing: 12) {
+            AsyncImage(url: app.imageURL) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color.gray.opacity(0.2)
+            }
+            .frame(width: 86, height: 86)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            Text(app.name)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+
+            Text(app.isIPA ? "Download available" : "Open post")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            DownloadOrOpenButton(app: app, downloadManager: downloadManager)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .frame(height: 230)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
     }
 }
 
 struct HomeAppDetailView: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
-    var onDownloadComplete: () -> Void
-
-    @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 22) {
+                AsyncImage(url: app.imageURL) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Color.gray.opacity(0.25)
+                }
+                .frame(height: 280)
+                .frame(maxWidth: .infinity)
+                .clipped()
 
-                GeometryReader { proxy in
-                    let minY = proxy.frame(in: .global).minY
-                    let isScrolledDown = minY > 0
-                    let height = isScrolledDown ? 220 + minY : 220
-                    let offset = isScrolledDown ? -minY : 0
-
-                    ZStack(alignment: .top) {
-                        AsyncImage(url: app.fullImageURL) { image in
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .top, spacing: 16) {
+                        AsyncImage(url: app.imageURL) { image in
                             image.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
-                            Color.blue.opacity(0.3)
+                            Color.gray.opacity(0.2)
                         }
-                        .frame(width: proxy.size.width, height: height)
-                        .clipped()
-                        .blur(radius: 40)
-                        .offset(y: offset)
+                        .frame(width: 90, height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-                        HStack {
-                            Button(action: {
-                                presentationMode.wrappedValue.dismiss()
-                            }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.title3.weight(.bold))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 40, height: 40)
-                                    .background(Circle().fill(Color(UIColor.systemBackground).opacity(0.8)))
-                            }
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(app.name)
+                                .font(.title.bold())
 
-                            Spacer()
-
-                            Button(action: {
-                                let shareText = "Download \(app.name) from IPAOMTK Store!\nhttps://ipaomtk.com"
-                                let av = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
-
-                                UIApplication.shared.connectedScenes
-                                    .compactMap { $0 as? UIWindowScene }
-                                    .first?
-                                    .windows
-                                    .first?
-                                    .rootViewController?
-                                    .present(av, animated: true)
-                            }) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.title3.weight(.bold))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 40, height: 40)
-                                    .background(Circle().fill(Color(UIColor.systemBackground).opacity(0.8)))
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, safeAreaTop() + 10)
-                    }
-                }
-                .frame(height: 220)
-
-                HStack(alignment: .top, spacing: 16) {
-                    AsyncImage(url: app.fullImageURL) { image in
-                        image.resizable().aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Color.gray.opacity(0.2)
-                    }
-                    .frame(width: 110, height: 110)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(app.name)
-                            .font(.title2.bold())
-                            .foregroundColor(.primary)
-
-                        if let hacks = app.hack, !hacks.isEmpty {
-                            Text(hacks[0])
-                                .font(.subheadline)
+                            Text(app.category)
                                 .foregroundColor(.secondary)
-                                .lineLimit(6)
-                        } else {
-                            Text(app.category ?? "App")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+
+                            DownloadOrOpenButton(app: app, downloadManager: downloadManager)
+                                .frame(width: 130)
                         }
-
-                        HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
-                            .frame(width: 80, alignment: .leading)
-                            .padding(.top, 4)
                     }
-                    .padding(.top, 40)
-                }
-                .padding(.horizontal, 20)
-                .offset(y: -55)
-                .padding(.bottom, -35)
 
-                HStack(spacing: 12) {
-                    HStack {
-                        Image(systemName: "tag.fill")
-                            .foregroundColor(Color(UIColor.systemPurple))
-                            .font(.system(size: 13))
+                    Divider()
 
-                        Text(app.version ?? "1.0")
-                            .font(.subheadline.bold())
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(UIColor.secondarySystemBackground))
-                    )
-
-                    HStack {
-                        Image(systemName: "shippingbox.fill")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 13))
-
-                        Text(app.size ?? "Unknown")
-                            .font(.subheadline.bold())
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(UIColor.secondarySystemBackground))
-                    )
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
-
-                VStack(alignment: .leading, spacing: 12) {
                     Text("Description")
-                        .font(.title3.bold())
+                        .font(.title2.bold())
 
-                    if let hacks = app.hack, !hacks.isEmpty {
-                        ForEach(hacks, id: \.self) { hack in
-                            Text("• \(hack)")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                        }
-                    } else {
-                        Text("Download \(app.name) now from IPAOMTK.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
+                    Text(app.description)
+                        .font(.body)
+                        .foregroundColor(.secondary)
 
-                Divider()
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
+                    Divider()
 
-                VStack(alignment: .leading, spacing: 16) {
                     Text("Information")
-                        .font(.title3.bold())
-                        .padding(.bottom, 4)
+                        .font(.title2.bold())
 
                     AppInfoRow(title: "Source", value: "IPAOMTK WordPress")
-                    AppInfoRow(title: "Developer", value: app.developer ?? "Unknown")
-                    AppInfoRow(title: "Size", value: app.size ?? "Unknown")
-                    AppInfoRow(title: "Version", value: app.version ?? "1.0")
-                    AppInfoRow(title: "Updated", value: "Recently")
-                    AppInfoRow(title: "Identifier", value: app.bundle ?? "com.ipaomtk.\(app.name.replacingOccurrences(of: " ", with: "").lowercased())")
+                    AppInfoRow(title: "Type", value: app.isIPA ? "IPA Download" : "WordPress Post")
+                    AppInfoRow(title: "Website", value: "ipaomtk.com")
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 50)
+                .padding(.bottom, 40)
             }
         }
-        .navigationBarHidden(true)
-        .ignoresSafeArea(edges: .top)
-    }
-
-    private func safeAreaTop() -> CGFloat {
-        let window = UIApplication.shared.connectedScenes
-            .filter { $0.activationState == .foregroundActive }
-            .compactMap { $0 as? UIWindowScene }
-            .first?
-            .windows
-            .filter { $0.isKeyWindow }
-            .first
-
-        return window?.safeAreaInsets.top ?? 44
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-struct AppInfoRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text(title)
-                    .foregroundColor(.primary)
-
-                Spacer()
-
-                Text(value)
-                    .foregroundColor(.secondary)
-            }
-
-            Divider()
-        }
-    }
-}
-
-struct FeaturedAppView: View {
+struct DownloadOrOpenButton: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
-    var onDownloadComplete: () -> Void
+    @StateObject private var downloader = HomeAppDownloader()
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: app.fullBannerURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Color.blue.opacity(0.2)
-            }
-            .frame(height: 210)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.8)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .frame(height: 210)
-
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 6) {
-                    if let status = app.status {
-                        Text(status.uppercased())
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue)
-                            .clipShape(Capsule())
-                    }
-
-                    Text(app.name)
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-
-                    Text(app.category ?? "App")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+        Group {
+            if downloader.isFinished {
+                Label("Done", systemImage: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.green.opacity(0.15))
+                    .foregroundColor(.green)
+                    .clipShape(Capsule())
+            } else if downloader.isDownloading {
+                HStack {
+                    ProgressView()
+                    Text("Loading")
                 }
-
-                Spacer()
-
-                HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
-                    .colorScheme(.dark)
-            }
-            .padding(20)
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 25)
-    }
-}
-
-struct HomeAppCardView: View {
-    let app: HomeApp
-    @ObservedObject var downloadManager: DownloadManager
-    var onDownloadComplete: () -> Void
-
-    var body: some View {
-        VStack(alignment: .center, spacing: 8) {
-            AsyncImage(url: app.fullImageURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Color.gray.opacity(0.1)
-            }
-            .frame(width: 76, height: 76)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .shadow(color: Color.black.opacity(0.06), radius: 5, x: 0, y: 3)
-
-            Text(app.name)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-                .multilineTextAlignment(.center)
-                .padding(.top, 4)
-
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .foregroundColor(.yellow)
-                    .font(.system(size: 10))
-
-                Text("4.6")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.12))
+                .foregroundColor(.blue)
+                .clipShape(Capsule())
+            } else {
+                Button {
+                    if app.isIPA, let url = URL(string: app.url) {
+                        downloader.start(url: url) { localURL in
+                            _ = downloadManager.startDownload(from: localURL)
+                        }
+                    } else if let url = URL(string: app.url) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text(app.isIPA ? "Get" : "Open")
+                        .font(.system(size: 14, weight: .bold))
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue.opacity(0.12))
+                        .foregroundColor(.blue)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
-
-            Spacer(minLength: 6)
-
-            HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
-        }
-        .padding(14)
-        .frame(width: 130, height: 195)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
-        )
-    }
-}
-
-struct SocialMediaFooter: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Follow Us")
-                .font(.headline)
-                .foregroundColor(.secondary)
-
-            HStack(spacing: 25) {
-                SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ipaomtk")
-                SocialButton(icon: "camera.fill", color: Color(UIColor.systemPurple), url: "https://www.ipaomtk.com/")
-                SocialButton(icon: "play.tv.fill", color: .black, url: "https://www.tiktok.com/@ipaomtk")
-            }
-        }
-        .padding(.vertical, 20)
-        .padding(.horizontal)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
-        )
-        .padding(.horizontal, 20)
-    }
-}
-
-struct SocialButton: View {
-    let icon: String
-    let color: Color
-    let url: String
-
-    var body: some View {
-        Button(action: {
-            if let link = URL(string: url) {
-                UIApplication.shared.open(link)
-            }
-        }) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundColor(.white)
-                .frame(width: 54, height: 54)
-                .background(color)
-                .clipShape(Circle())
-                .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 4)
         }
     }
 }
 
 class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate {
-    @Published var progress: CGFloat = 0
     @Published var isDownloading = false
     @Published var isFinished = false
 
@@ -717,33 +473,11 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
         self.downloadURL = url
         self.onFinished = onFinished
         self.isDownloading = true
-        self.progress = 0
         self.isFinished = false
 
         self.session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue.main)
-        downloadTask = session?.downloadTask(with: url)
-        downloadTask?.resume()
-    }
-
-    func stop() {
-        downloadTask?.cancel()
-        session?.invalidateAndCancel()
-        self.isDownloading = false
-        self.progress = 0
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didWriteData bytesWritten: Int64,
-        totalBytesWritten: Int64,
-        totalBytesExpectedToWrite: Int64
-    ) {
-        if totalBytesExpectedToWrite > 0 {
-            DispatchQueue.main.async {
-                self.progress = CGFloat(totalBytesWritten) / CGFloat(totalBytesExpectedToWrite)
-            }
-        }
+        self.downloadTask = session?.downloadTask(with: url)
+        self.downloadTask?.resume()
     }
 
     func urlSession(
@@ -752,7 +486,7 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
         didFinishDownloadingTo location: URL
     ) {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "\(UUID().uuidString)-\(downloadURL?.lastPathComponent ?? "app.ipa")"
+        let fileName = "\(UUID().uuidString)-\(downloadURL?.lastPathComponent ?? "download.ipa")"
         let destinationURL = tempDir.appendingPathComponent(fileName)
 
         try? FileManager.default.removeItem(at: destinationURL)
@@ -764,12 +498,6 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
                 self.isDownloading = false
                 self.isFinished = true
                 self.onFinished?(destinationURL)
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.isFinished = false
-                    }
-                }
             }
         } catch {
             DispatchQueue.main.async {
@@ -795,85 +523,63 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
     }
 }
 
-struct HomeDownloadButtonView: View {
-    let app: HomeApp
-    @ObservedObject var downloadManager: DownloadManager
-    var onDownloadComplete: () -> Void
-
-    @StateObject private var downloader = HomeAppDownloader()
+struct AppInfoRow: View {
+    let title: String
+    let value: String
 
     var body: some View {
-        ZStack {
-            if downloader.isFinished {
-                Button(action: {}) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(Color.blue.opacity(0.12))
-                        .foregroundColor(.blue)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.blue.opacity(0.3), lineWidth: 0.5))
-                }
-                .disabled(true)
-            } else if downloader.isDownloading {
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 3)
-                        .frame(width: 24, height: 24)
+        VStack(spacing: 12) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(value)
+                    .foregroundColor(.secondary)
+            }
+            Divider()
+        }
+    }
+}
 
-                    if downloader.progress > 0 {
-                        Circle()
-                            .trim(from: 0, to: downloader.progress)
-                            .stroke(Color.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 24, height: 24)
-                            .animation(.linear(duration: 0.2), value: downloader.progress)
-                    } else {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                    }
+struct SocialMediaFooter: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Follow Us")
+                .font(.headline)
+                .foregroundColor(.secondary)
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.blue)
-                        .frame(width: 8, height: 8)
-                        .onTapGesture {
-                            downloader.stop()
-                        }
-                }
-                .frame(height: 32)
-            } else {
-                Button(action: {
-                    guard app.url.lowercased().contains(".ipa") else {
-                        print("Invalid IPA URL: \(app.url)")
-                        return
-                    }
-
-                    if let downloadURL = URL(string: app.url) {
-                        let generator = UINotificationFeedbackGenerator()
-                        generator.notificationOccurred(.success)
-
-                        downloader.start(url: downloadURL) { localURL in
-                            _ = downloadManager.startDownload(from: localURL)
-
-                            DispatchQueue.main.async {
-                                onDownloadComplete()
-                            }
-                        }
-                    }
-                }) {
-                    Text("Get")
-                        .font(.system(size: 13, weight: .bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(Color.blue.opacity(0.08))
-                        .foregroundColor(.blue)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.blue.opacity(0.4), lineWidth: 0.5))
-                }
-                .buttonStyle(.plain)
+            HStack(spacing: 25) {
+                SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ipaomtk")
+                SocialButton(icon: "camera.fill", color: Color(UIColor.systemPurple), url: "https://www.instagram.com/ipaomtk")
+                SocialButton(icon: "play.tv.fill", color: .black, url: "https://www.tiktok.com/@ipaomtk")
             }
         }
-        .frame(height: 32)
+        .padding(.vertical, 22)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
+        .padding(.horizontal, 20)
+    }
+}
+
+struct SocialButton: View {
+    let icon: String
+    let color: Color
+    let url: String
+
+    var body: some View {
+        Button {
+            if let link = URL(string: url) {
+                UIApplication.shared.open(link)
+            }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(.white)
+                .frame(width: 54, height: 54)
+                .background(color)
+                .clipShape(Circle())
+        }
     }
 }
