@@ -9,12 +9,13 @@ import Foundation
 import UIKit
 
 struct HomeApp: Identifiable {
-    var id: String { url }
+    var id: String { "\(name)-\(url)" }
 
     let name: String
     let description: String
     let image: String?
     let url: String
+    let webURL: String
     let isIPA: Bool
     let category: String
 
@@ -63,7 +64,6 @@ struct FeaturedMedia: Codable {
 extension String {
     var cleanHTML: String {
         var text = self
-
         text = text.replacingOccurrences(of: "<br>", with: "\n")
         text = text.replacingOccurrences(of: "<br/>", with: "\n")
         text = text.replacingOccurrences(of: "<br />", with: "\n")
@@ -88,10 +88,7 @@ extension String {
 
     func firstURLContaining(_ keyword: String) -> String? {
         let pattern = #"https?:\/\/[^\s"'<>]+"#
-
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return nil
-        }
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
 
         let range = NSRange(self.startIndex..., in: self)
         let matches = regex.matches(in: self, range: range)
@@ -115,26 +112,41 @@ extension String {
 
 struct HomeView: View {
     @StateObject var downloadManager = DownloadManager.shared
+
     @State private var apps: [HomeApp] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var searchText = ""
+
+    var filteredApps: [HomeApp] {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return apps
+        }
+
+        return apps.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.description.localizedCaseInsensitiveContains(searchText)
+        }
+    }
 
     var body: some View {
         NBNavigationView("Home") {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    if isLoading {
-                        ProgressView("Loading IPAOMTK...")
+                    searchBar
+
+                    if isLoading && apps.isEmpty {
+                        ProgressView("Loading apps...")
                             .frame(maxWidth: .infinity)
                             .padding(.top, 80)
-                    } else if let errorMessage {
+                    } else if let errorMessage, apps.isEmpty {
                         Text(errorMessage)
                             .foregroundColor(.red)
-                            .padding()
-                    } else if apps.isEmpty {
-                        Text("No posts found.")
+                            .padding(.horizontal, 20)
+                    } else if filteredApps.isEmpty {
+                        Text("No apps found.")
                             .foregroundColor(.secondary)
-                            .padding()
+                            .padding(.horizontal, 20)
                     } else {
                         featuredSection
                         appsSection
@@ -145,14 +157,40 @@ struct HomeView: View {
                 .padding(.top, 10)
             }
             .refreshable {
-                await loadApps()
+                await loadApps(showLoading: false)
             }
         }
         .onAppear {
-            Task {
-                await loadApps()
+            if apps.isEmpty {
+                Task {
+                    await loadApps(showLoading: true)
+                }
             }
         }
+    }
+
+    var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+
+            TextField("Search apps...", text: $searchText)
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(UIColor.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal, 20)
     }
 
     var featuredSection: some View {
@@ -162,7 +200,7 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
 
             TabView {
-                ForEach(apps.prefix(5)) { app in
+                ForEach(filteredApps.prefix(5)) { app in
                     NavigationLink {
                         HomeAppDetailView(app: app, downloadManager: downloadManager)
                     } label: {
@@ -178,7 +216,7 @@ struct HomeView: View {
 
     var appsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Apps")
+            Text(searchText.isEmpty ? "Apps" : "Search Results")
                 .font(.title2.bold())
                 .padding(.horizontal, 20)
 
@@ -186,7 +224,7 @@ struct HomeView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 18) {
-                ForEach(apps) { app in
+                ForEach(filteredApps) { app in
                     NavigationLink {
                         HomeAppDetailView(app: app, downloadManager: downloadManager)
                     } label: {
@@ -199,15 +237,17 @@ struct HomeView: View {
         }
     }
 
-    private func loadApps() async {
+    private func loadApps(showLoading: Bool) async {
         DispatchQueue.main.async {
-            self.isLoading = true
+            if showLoading {
+                self.isLoading = true
+            }
             self.errorMessage = nil
         }
 
         guard let url = URL(string: "https://ipaomtk.com/wp-json/wp/v2/posts?_embed&per_page=50") else {
             DispatchQueue.main.async {
-                self.errorMessage = "Bad WordPress URL."
+                self.errorMessage = "Bad feed URL."
                 self.isLoading = false
             }
             return
@@ -216,6 +256,7 @@ struct HomeView: View {
         do {
             var request = URLRequest(url: url)
             request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.timeoutInterval = 25
 
             let (data, _) = try await URLSession.shared.data(for: request)
             let posts = try JSONDecoder().decode([WordPressPost].self, from: data)
@@ -242,6 +283,7 @@ struct HomeView: View {
                     description: excerpt.isEmpty ? "Download from IPAOMTK." : excerpt,
                     image: imageURL,
                     url: finalURL,
+                    webURL: post.link,
                     isIPA: ipaURL != nil,
                     category: "Apps"
                 )
@@ -250,10 +292,20 @@ struct HomeView: View {
             DispatchQueue.main.async {
                 self.apps = convertedApps
                 self.isLoading = false
+                self.errorMessage = nil
             }
         } catch {
+            if (error as NSError).code == NSURLErrorCancelled {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                }
+                return
+            }
+
             DispatchQueue.main.async {
-                self.errorMessage = "Could not load WordPress posts: \(error.localizedDescription)"
+                if self.apps.isEmpty {
+                    self.errorMessage = "Could not load apps. Pull down to refresh."
+                }
                 self.isLoading = false
             }
         }
@@ -281,7 +333,7 @@ struct FeaturedCard: View {
             )
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(app.isIPA ? "IPA" : "POST")
+                Text(app.isIPA ? "IPA" : "APP")
                     .font(.caption.bold())
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -300,7 +352,7 @@ struct FeaturedCard: View {
                     .lineLimit(2)
 
                 DownloadOrOpenButton(app: app, downloadManager: downloadManager)
-                    .frame(width: 110)
+                    .frame(width: 120)
                     .padding(.top, 4)
             }
             .padding(18)
@@ -330,7 +382,7 @@ struct AppGridCard: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
 
-            Text(app.isIPA ? "Download available" : "Open post")
+            Text(app.isIPA ? "Download available" : "View app page")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -380,7 +432,7 @@ struct HomeAppDetailView: View {
                                 .foregroundColor(.secondary)
 
                             DownloadOrOpenButton(app: app, downloadManager: downloadManager)
-                                .frame(width: 130)
+                                .frame(width: 140)
                         }
                     }
 
@@ -398,9 +450,25 @@ struct HomeAppDetailView: View {
                     Text("Information")
                         .font(.title2.bold())
 
-                    AppInfoRow(title: "Source", value: "IPAOMTK WordPress")
-                    AppInfoRow(title: "Type", value: app.isIPA ? "IPA Download" : "WordPress Post")
+                    AppInfoRow(title: "Source", value: "IPAOMTK")
+                    AppInfoRow(title: "Type", value: app.isIPA ? "IPA Download" : "App Page")
                     AppInfoRow(title: "Website", value: "ipaomtk.com")
+
+                    Button {
+                        if let link = URL(string: app.webURL) {
+                            UIApplication.shared.open(link)
+                        }
+                    } label: {
+                        Text("Open Web Page")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue.opacity(0.12))
+                            .foregroundColor(.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
@@ -442,7 +510,7 @@ struct DownloadOrOpenButton: View {
                         downloader.start(url: url) { localURL in
                             _ = downloadManager.startDownload(from: localURL)
                         }
-                    } else if let url = URL(string: app.url) {
+                    } else if let url = URL(string: app.webURL) {
                         UIApplication.shared.open(url)
                     }
                 } label: {
