@@ -2,14 +2,14 @@
 //  TabEnum.swift
 //  feather
 //
-//  Modified for AshteMobile
+//  Modified for IPAOMTK
 //
 
 import SwiftUI
 import NimbleViews
 
 enum TabEnum: String, CaseIterable, Hashable {
-    case home        // ١. زیادکردنی کیسێکی نوێ
+    case home      
     case sources
     case library
     case settings
@@ -17,7 +17,7 @@ enum TabEnum: String, CaseIterable, Hashable {
     
     var title: String {
         switch self {
-        case .home:         return .localized("Home") // ناوی بەشەکە
+        case .home:         return .localized("Home") //
         case .sources:      return .localized("Sources")
         case .library:      return .localized("Library")
         case .settings:     return .localized("Settings")
@@ -27,7 +27,7 @@ enum TabEnum: String, CaseIterable, Hashable {
     
     var icon: String {
         switch self {
-        case .home:         return "house.fill" // ئایکۆنی ماڵەکە
+        case .home:         return "house.fill" //
         case .sources:      return "globe.desk"
         case .library:      return "square.grid.2x2"
         case .settings:     return "gearshape.2"
@@ -38,7 +38,7 @@ enum TabEnum: String, CaseIterable, Hashable {
     @ViewBuilder
     static func view(for tab: TabEnum) -> some View {
         switch tab {
-        case .home:         HomeView() // ٢. لێرە پێویستە فایلی HomeView دروست بکەیت
+        case .home:         HomeView() //  HomeView
         case .sources:      SourcesView()
         case .library:      LibraryView()
         case .settings:     SettingsView()
@@ -48,7 +48,7 @@ enum TabEnum: String, CaseIterable, Hashable {
     
     static var defaultTabs: [TabEnum] {
         return [
-            .home,    // ٣. دانانی ماڵەوە وەک یەکەم بەش لە لیستەکەدا
+            .home,    //
             .sources,
             .library,
             .settings
