@@ -24,8 +24,9 @@ struct SourcesAddView: View {
 	@State var recommendedSourcesData: [(url: URL, data: ASRepository)] = []
 	
 	let recommendedSources: [URL] = [
-		"https://ashtemobile.tututweak.com/Ashtemobile.json"
-	].map { URL(string: $0)! }
+    "https://file.ipaomtk.com/repo/ipaomtk-repo.json",
+    "https://ashtemobile.tututweak.com/Ashtemobile.json"
+].map { URL(string: $0)! }
 	
 	@State private var _isImporting = false
 	@State private var _sourceURL = ""
