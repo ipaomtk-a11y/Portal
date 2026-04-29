@@ -141,11 +141,11 @@ extension SettingsView {
 			}
 			
 			Button(action: {
-				if let url = URL(string: "https://www.instagram.com/IPAOMTK") {
+				if let url = URL(string: "https://www.ipaomtk.com/") {
 					UIApplication.shared.open(url)
 				}
 			}) {
-				Label("Instagram", systemImage: "camera")
+				Label("Website", systemImage: "safari")
 			}
 		}
 	}
