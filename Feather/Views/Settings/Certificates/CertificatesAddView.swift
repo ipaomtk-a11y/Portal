@@ -1,6 +1,6 @@
 //
 //  CertificatesAddView.swift
-//  Feather
+//  IPAOMTK
 //
 //  Professional redesign for IPAOMTK
 //
