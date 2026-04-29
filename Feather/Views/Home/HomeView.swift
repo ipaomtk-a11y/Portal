@@ -842,7 +842,7 @@ struct SocialMediaFooter: View {
 
             HStack(spacing: 25) {
                 SocialButton(icon: "paperplane.fill", color: .blue, url: "https://t.me/ipaomtk")
-                SocialButton(icon: "camera.fill", color: Color(UIColor.systemPurple), url: "https://www.instagram.com/ipaomtk")
+                SocialButton(icon: "globe.americas.fill", color: Color(UIColor.systemPurple), url: "https://www.ipaomtk.com/")
                 SocialButton(icon: "play.tv.fill", color: .black, url: "https://www.tiktok.com/@ipaomtk")
             }
         }
