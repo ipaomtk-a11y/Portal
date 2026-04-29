@@ -2,69 +2,102 @@
 //  CertificateCellView.swift
 //  Feather
 //
-//  Created by samara on 16.04.2025.
+//  Professional redesign for IPAOMTK
 //
 
 import SwiftUI
 import NimbleViews
 
-// MARK: - View
 struct CertificatesCellView: View {
 	@State var data: Certificate?
-	
 	@ObservedObject var cert: CertificatePair
 	
-	// MARK: Body
 	var body: some View {
-		VStack(spacing: 6) {
-			let title = {
-				var title = cert.nickname ?? data?.Name ?? .localized("Unknown")
-				
-				if let getTaskAllow = data?.Entitlements?["get-task-allow"]?.value as? Bool, getTaskAllow == true {
-					title = "🐞 \(title)"
-				}
-				
-				return title
-			}()
+		HStack(spacing: 14) {
+			statusIcon
 			
-			NBTitleWithSubtitleView(
-				title: title,
-				subtitle: data?.AppIDName ?? .localized("Unknown")
-			)
+			VStack(alignment: .leading, spacing: 6) {
+				Text(certificateTitle)
+					.font(.headline.weight(.semibold))
+					.foregroundColor(.primary)
+					.lineLimit(1)
+				
+				Text(data?.AppIDName ?? .localized("Unknown"))
+					.font(.subheadline)
+					.foregroundColor(.secondary)
+					.lineLimit(1)
+				
+				certInfoPills
+			}
 			
-			_certInfoPill(data: cert)
+			Spacer(minLength: 8)
 		}
-		.frame(height: 80)
+		.padding(14)
+		.background(
+			RoundedRectangle(cornerRadius: 24, style: .continuous)
+				.fill(Color(.secondarySystemBackground))
+		)
 		.contentTransition(.opacity)
-		.frame(maxWidth: .infinity, alignment: .leading)
 		.onAppear {
 			withAnimation {
 				data = Storage.shared.getProvisionFileDecoded(for: cert)
 			}
 		}
 	}
-}
-
-// MARK: - Extension: View
-extension CertificatesCellView {
-	@ViewBuilder
-	private func _certInfoPill(data: CertificatePair) -> some View {
-		let pillItems = _buildPills(from: data)
-		HStack(spacing: 6) {
-			ForEach(pillItems.indices, id: \.hashValue) { index in
-				let pill = pillItems[index]
-				NBPillView(
-					title: pill.title,
-					icon: pill.icon,
-					color: pill.color,
-					index: index,
-					count: pillItems.count
-				)
+	
+	private var certificateTitle: String {
+		var title = cert.nickname ?? data?.Name ?? .localized("Unknown")
+		
+		if let getTaskAllow = data?.Entitlements?["get-task-allow"]?.value as? Bool, getTaskAllow == true {
+			title = "🐞 \(title)"
+		}
+		
+		return title
+	}
+	
+	private var statusColor: Color {
+		if cert.revoked == true { return .red }
+		if cert.ppQCheck == true { return .orange }
+		return .green
+	}
+	
+	private var statusIcon: some View {
+		Image(systemName: cert.revoked == true ? "xmark.seal.fill" : "checkmark.seal.fill")
+			.font(.system(size: 24, weight: .bold))
+			.foregroundColor(statusColor)
+			.frame(width: 54, height: 54)
+			.background(statusColor.opacity(0.14))
+			.clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+	}
+	
+	private var certInfoPills: some View {
+		let pillItems = buildPills(from: cert)
+		
+		return HStack(spacing: 6) {
+			if pillItems.isEmpty {
+				Text(.localized("Active"))
+					.font(.caption.weight(.bold))
+					.foregroundColor(.green)
+					.padding(.horizontal, 10)
+					.padding(.vertical, 5)
+					.background(Color.green.opacity(0.14))
+					.clipShape(Capsule())
+			} else {
+				ForEach(pillItems.indices, id: \.self) { index in
+					let pill = pillItems[index]
+					NBPillView(
+						title: pill.title,
+						icon: pill.icon,
+						color: pill.color,
+						index: index,
+						count: pillItems.count
+					)
+				}
 			}
 		}
 	}
 	
-	private func _buildPills(from cert: CertificatePair) -> [NBPillItem] {
+	private func buildPills(from cert: CertificatePair) -> [NBPillItem] {
 		var pills: [NBPillItem] = []
 		
 		if cert.ppQCheck == true {
