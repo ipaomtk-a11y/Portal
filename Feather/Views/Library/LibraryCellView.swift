@@ -1,8 +1,8 @@
 //
 //  LibraryAppIconView.swift
-//  Feather
+//  IPAOMTK
 //
-//  Created by samara on 11.04.2025.
+//  Professional Library cell redesign for IPAOMTK
 //
 
 import SwiftUI
@@ -13,7 +13,7 @@ import NimbleViews
 struct LibraryCellView: View {
 	@Environment(\.horizontalSizeClass) private var horizontalSizeClass
 	@Environment(\.editMode) private var editMode
-
+	
 	var certInfo: Date.ExpirationInfo? {
 		Storage.shared.getCertificate(from: app)?.expiration?.expirationInfo()
 	}
@@ -28,7 +28,7 @@ struct LibraryCellView: View {
 	@Binding var selectedInstallAppPresenting: AnyApp?
 	@Binding var selectedAppUUIDs: Set<String>
 	
-	// MARK: Selections
+	// MARK: Selection
 	private var _isSelected: Bool {
 		guard let uuid = app.uuid else { return false }
 		return selectedAppUUIDs.contains(uuid)
@@ -36,6 +36,7 @@ struct LibraryCellView: View {
 	
 	private func _toggleSelection() {
 		guard let uuid = app.uuid else { return }
+		
 		if selectedAppUUIDs.contains(uuid) {
 			selectedAppUUIDs.remove(uuid)
 		} else {
@@ -45,44 +46,76 @@ struct LibraryCellView: View {
 	
 	// MARK: Body
 	var body: some View {
-		let isRegular = horizontalSizeClass != .compact
 		let isEditing = editMode?.wrappedValue == .active
 		
-		HStack(spacing: 18) {
+		HStack(spacing: 14) {
 			if isEditing {
 				Button {
 					_toggleSelection()
 				} label: {
 					Image(systemName: _isSelected ? "checkmark.circle.fill" : "circle")
+						.font(.system(size: 24, weight: .semibold))
 						.foregroundColor(_isSelected ? .accentColor : .secondary)
-						.font(.title2)
 				}
 				.buttonStyle(.borderless)
 			}
 			
-			FRAppIconView(app: app, size: 57)
+			FRAppIconView(app: app, size: 62)
+				.clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+				.shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 5)
 			
-			NBTitleWithSubtitleView(
-				title: app.name ?? .localized("Unknown"),
-				subtitle: _desc,
-				linelimit: 0
-			)
+			VStack(alignment: .leading, spacing: 5) {
+				Text(app.name ?? .localized("Unknown"))
+					.font(.headline.weight(.semibold))
+					.foregroundColor(.primary)
+					.lineLimit(1)
+				
+				Text(_desc)
+					.font(.subheadline)
+					.foregroundColor(.secondary)
+					.lineLimit(1)
+				
+				if app.isSigned {
+					HStack(spacing: 6) {
+						Image(systemName: "checkmark.seal.fill")
+							.font(.caption)
+						Text(.localized("Signed"))
+							.font(.caption.weight(.semibold))
+					}
+					.foregroundColor(.green)
+				} else {
+					HStack(spacing: 6) {
+						Image(systemName: "tray.and.arrow.down.fill")
+							.font(.caption)
+						Text(.localized("Imported"))
+							.font(.caption.weight(.semibold))
+					}
+					.foregroundColor(.orange)
+				}
+			}
+			
+			Spacer(minLength: 8)
 			
 			if !isEditing {
 				_buttonActions(for: app)
 			}
 		}
-		.padding(isRegular ? 12 : 0)
+		.padding(14)
 		.background(
-			isRegular
-			? RoundedRectangle(cornerRadius: 18, style: .continuous)
-				.fill(_isSelected && isEditing ? Color.accentColor.opacity(0.1) : Color(.quaternarySystemFill))
-			: nil
+			RoundedRectangle(cornerRadius: 24, style: .continuous)
+				.fill(_isSelected && isEditing ? Color.accentColor.opacity(0.14) : Color(.secondarySystemBackground))
+				.shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 7)
+		)
+		.overlay(
+			RoundedRectangle(cornerRadius: 24, style: .continuous)
+				.stroke(_isSelected && isEditing ? Color.accentColor.opacity(0.55) : Color.white.opacity(0.05), lineWidth: 1)
 		)
 		.contentShape(Rectangle())
 		.onTapGesture {
 			if isEditing {
 				_toggleSelection()
+			} else {
+				selectedInfoAppPresenting = AnyApp(base: app)
 			}
 		}
 		.swipeActions {
@@ -110,8 +143,7 @@ struct LibraryCellView: View {
 	}
 }
 
-
-// MARK: - Extension: View
+// MARK: - Actions
 extension LibraryCellView {
 	@ViewBuilder
 	private func _actions(for app: AppInfoPresentable) -> some View {
@@ -135,12 +167,15 @@ extension LibraryCellView {
 					UIApplication.openApp(with: id)
 				}
 			}
+			
 			Button(.localized("Install"), systemImage: "square.and.arrow.down") {
 				selectedInstallAppPresenting = AnyApp(base: app)
 			}
+			
 			Button(.localized("Re-sign"), systemImage: "signature") {
 				selectedSigningAppPresenting = AnyApp(base: app)
 			}
+			
 			Button(.localized("Export"), systemImage: "square.and.arrow.up") {
 				selectedInstallAppPresenting = AnyApp(base: app, archive: true)
 			}
@@ -148,6 +183,7 @@ extension LibraryCellView {
 			Button(.localized("Install"), systemImage: "square.and.arrow.down") {
 				selectedInstallAppPresenting = AnyApp(base: app)
 			}
+			
 			Button(.localized("Sign"), systemImage: "signature") {
 				selectedSigningAppPresenting = AnyApp(base: app)
 			}
@@ -171,11 +207,19 @@ extension LibraryCellView {
 				Button {
 					selectedSigningAppPresenting = AnyApp(base: app)
 				} label: {
-					FRExpirationPillView(
-						title: .localized("Sign"),
-						revoked: false,
-						expiration: nil
-					)
+					Text(.localized("Sign"))
+						.font(.headline.weight(.semibold))
+						.foregroundColor(.white)
+						.padding(.horizontal, 18)
+						.padding(.vertical, 10)
+						.background(
+							LinearGradient(
+								colors: [.pink, .red],
+								startPoint: .topLeading,
+								endPoint: .bottomTrailing
+							)
+						)
+						.clipShape(Capsule())
 				}
 			}
 		}
