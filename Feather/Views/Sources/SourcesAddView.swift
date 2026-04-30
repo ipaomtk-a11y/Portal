@@ -25,11 +25,10 @@ struct SourcesAddView: View {
 	
 	let recommendedSources: [URL] = [
     "https://file.ipaomtk.com/repo/ipaomtk-repo.json",
-].map { URL(string: $0)! }
-	
-	let recommendedSources: [URL] = [
     "https://ashtemobile.tututweak.com/Ashtemobile.json"
+
 ].map { URL(string: $0)! }
+
 	
 	@State private var _isImporting = false
 	@State private var _sourceURL = ""
