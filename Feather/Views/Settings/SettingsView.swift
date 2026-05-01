@@ -53,7 +53,7 @@ struct SettingsView: View {
 extension SettingsView {
 	private var headerCard: some View {
 		VStack(spacing: 18) {
-			AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
+			AsyncImage(url: URL(string: "https://ipaomtk.com/ipaomtk-icon.png")) { image in
 				image.resizable().scaledToFill()
 			} placeholder: {
 				ProgressView()
