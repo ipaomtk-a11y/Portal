@@ -1,8 +1,8 @@
 //
 //  FeatherApp.swift
-//  Feather
+//  IPAOMTK
 //
-//  Created by samara on 10.04.2025.
+//  Created by IPAOMTK on 10.04.2025.
 //
 
 import SwiftUI
