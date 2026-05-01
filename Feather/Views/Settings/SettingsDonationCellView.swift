@@ -1,6 +1,6 @@
 //
 //  SettingsDonationCellView.swift
-//  Feather
+//  ipaomtk
 //
 //  Professional redesign for IPAOMTK
 //
