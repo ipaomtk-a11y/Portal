@@ -1,4 +1,4 @@
-# Feather
+# IPAOMTK
 
 [![GitHub Release](https://img.shields.io/github/v/release/claration/Feather?include_prereleases)](https://github.com/claration/Feather/releases)
 [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/claration/Feather/total)](https://github.com/claration/Feather/releases)
@@ -9,7 +9,7 @@ This app allows you to install and manage applications contained in a single app
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="Images/Image-dark.png"><source media="(prefers-color-scheme: light)" srcset="Images/Image-light.png"><img alt="Feather" src="Images/Image-light.png"></picture></p>
 
-### Features
+### IPAOMTK
 
 - User friendly, and clean UI.
 - Sign and install applications.
