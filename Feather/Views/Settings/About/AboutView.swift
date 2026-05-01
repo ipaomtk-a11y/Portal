@@ -1,6 +1,6 @@
 //
 //  AboutView.swift
-//  Feather
+//  IPAOMTK
 //
 //  Modified for IPAOMTK
 //
