@@ -2,7 +2,7 @@
 //  TabEnum.swift
 //  IPAOMTK
 //
-//  Modified for AshteMobile
+//  Modified for IPAOMTK
 //
 
 import SwiftUI
