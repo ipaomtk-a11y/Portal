@@ -16,7 +16,7 @@ struct AboutView: View {
 		NBList("About") {
 			Section {
 				VStack {
-					AsyncImage(url: URL(string: "https://ipaomtk.com/wp-content/uploads/2026/04/cropped-ipaomtk-icon.png")) { image in
+					AsyncImage(url: URL(string: "https://ipaomtk.com/ipaomtk-icon.png")) { image in
 						image.resizable().scaledToFit()
 					} placeholder: {
 						ProgressView()
