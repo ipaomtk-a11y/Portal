@@ -44,16 +44,16 @@ extension ServerInstaller {
 	
 	// MARK: Files/IP
 	func sni() -> String {
-		let localhost = "127.0.0.1"
-		
-		if getServerMethod() == 1 {
-			return !self.getIPFix()
-			? (Self.getLocalAddress() ?? localhost)
-			: localhost
-		} else {
-			return readCommonName() ?? localhost
-		}
-	}
+    let localhost = "127.0.0.1"
+    
+    if getServerMethod() == 1 {
+        return !self.getIPFix()
+        ? (Self.getLocalAddress() ?? localhost)
+        : localhost
+    } else {
+        return "install.ipaomtk.com"
+    }
+}
 	
 	func tls() throws -> TLSConfiguration? {
 		guard
