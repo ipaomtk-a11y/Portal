@@ -19,7 +19,7 @@ struct SourcesCellView: View {
 		
 		FRIconCellView(
 			title: source.name ?? .localized("Unknown"),
-			subtitle: "",
+			subtitle: "", // لێرەدا لینکەکەمان سڕییەوە بۆ ئەوەی بە هیچ شێوەیەک دیار نەبێت
 			iconUrl: source.iconURL
 		)
 		.padding(isRegular ? 12 : 0)
@@ -31,11 +31,11 @@ struct SourcesCellView: View {
 		)
 		.swipeActions {
 			_actions(for: source)
-        
+            // دوگمەی کۆپیکردنمان لە کاتی ڕاکێشاندا لابرد
 		}
 		.contextMenu {
 			_actions(for: source)
-            //  (Long Press)
+            // دوگمەی کۆپیکردنمان لە کاتی پەنجە پێداگرتن (Long Press) لابرد
 		}
 	}
 }
