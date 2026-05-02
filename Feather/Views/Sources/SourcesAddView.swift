@@ -30,15 +30,7 @@ struct SourcesAddView: View {
     
     @State var recommendedSourcesData: [(url: URL, data: ASRepository)] = []
     let recommendedSources: [URL] = [
-    "https://file.ipaomtk.com/repo/ipaomtk-repo.json"
-    "https://ashtemobile.tututweak.com/Ashtemobile.json"
-	"https://raw.githubusercontent.com/Aidoku/Aidoku/altstore/apps.json"
-	"https://github.com/chachillie/Flycast-iOS/raw/main/flycast-ios.json"
-	"https://raw.githubusercontent.com/paigely/Navic/refs/heads/master/app-repo.json"
-	"https://provenance-emu.com/apps.json"
-	"https://community-apps.sidestore.io/sidecommunity.json"
-	"https://stikdebug.xyz/index.json"
-	"https://xitrix.github.io/iTorrent/AltStore.json"
+        "https://file.ipaomtk.com/repo/ipaomtk-repo.json"
     ].map { URL(string: $0)! }
     
     @State private var _isImporting = false
@@ -229,7 +221,7 @@ extension SourcesAddView {
     }
 }
 
-// MARK: - Logic
+// MARK: - Logic (نفس المنطق السابق)
 extension SourcesAddView {
     private func _fetchRecommendedRepositories() async {
         let fetched = await _concurrentFetchRepositories(from: recommendedSources)
