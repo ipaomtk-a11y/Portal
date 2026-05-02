@@ -26,7 +26,20 @@ struct SourcesAddView: View {
 	let recommendedSources: [URL] = [
     "https://file.ipaomtk.com/repo/ipaomtk-repo.json",
     "https://ashtemobile.tututweak.com/Ashtemobile.json"
-
+    "linkkkkkkk"
+		"https://raw.githubusercontent.com/Aidoku/Aidoku/altstore/apps.json"
+		"https://repository.apptesters.org"
+		"https://github.com/chachillie/Flycast-iOS/raw/main/flycast-ios.json"
+		"https://apps.manicemu.site/altstore"
+		"https://raw.githubusercontent.com/paigely/Navic/refs/heads/master/app-repo.json"
+		"https://altstore.oatmealdome.me/"
+		"https://pokemmo.com/altstore/"
+		"https://provenance-emu.com/apps.json"
+		"https://community-apps.sidestore.io/sidecommunity.json"
+		"https://stikdebug.xyz/index.json"
+		"https://alt.getutm.app"
+		"https://alt.crystall1ne.dev/"
+		"https://xitrix.github.io/iTorrent/AltStore.json"
 ].map { URL(string: $0)! }
 
 	
