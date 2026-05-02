@@ -200,7 +200,7 @@ extension SourcesAddView {
     
     private var _footerSection: some View {
         VStack(spacing: 8) {
-            Link(String.localized("Telegram..."), destination: URL(string: "https://t.me/ashtemobile")!)
+            Link(String.localized("Telegram..."), destination: URL(string: "https://t.me/ipaomtk")!)
                 .font(.footnote.weight(.semibold))
             
             Text(.localized("Want to be featured? Contact us on Telegram."))
