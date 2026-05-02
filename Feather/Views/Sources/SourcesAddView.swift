@@ -30,7 +30,7 @@ struct SourcesAddView: View {
     
     @State var recommendedSourcesData: [(url: URL, data: ASRepository)] = []
     let recommendedSources: [URL] = [
-    "https://file.ipaomtk.com/repo/ipaomtk-repo.json",
+    "https://file.ipaomtk.com/repo/ipaomtk-repo.json"
     "https://ashtemobile.tututweak.com/Ashtemobile.json"
 	"https://raw.githubusercontent.com/Aidoku/Aidoku/altstore/apps.json"
 	"https://repository.apptesters.org"
